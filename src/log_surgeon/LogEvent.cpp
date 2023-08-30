@@ -50,15 +50,12 @@ auto LogEventView::reset() -> void {
 
 auto LogEventView::get_logtype() -> std::string {
     std::string logtype;
-    uint32_t start = 0;
-    if (false == m_log_output_buffer->has_timestamp()) {
-        start = 1;
-    }
-    for (uint32_t i = start; i < m_log_output_buffer->pos(); i++) {
+    for (uint32_t i = 1; i < m_log_output_buffer->pos(); i++) {
         Token& token = m_log_output_buffer->get_mutable_token(i);
         if (token.m_type_ids_ptr->at(0) == (int)log_surgeon::SymbolID::TokenUncaughtStringID) {
             logtype += token.to_string_view();
         } else {
+            logtype += token.get_delimiter();
             logtype += "<";
             logtype += m_log_parser->get_id_symbol(token.m_type_ids_ptr->at(0));
             logtype += ">";
