@@ -43,6 +43,15 @@ static auto existing_integer_or_string_rule(NonTerminal* m) -> unique_ptr<Parser
     return std::move(r1);
 }
 
+static auto swap_to_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+    unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
+    auto* r1_ptr = dynamic_cast<JsonValueAST*>(r1.get());
+    string r2 = m->token_cast(1)->to_string();
+    r1_ptr->change_type(JsonValueType::String);
+    r1_ptr->add_character(r2[0]);
+    return std::move(r1);
+}
+
 static auto value_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     return std::move(r1);
@@ -152,11 +161,13 @@ void CustomParser::add_productions() {
     // add_production("IncompleteDict", {"List", "Comma", "Pair"}, existing_dictionary_rule);
     // add_production("Pair", {"String", "Colon", "Value"}, pair_rule);
 
+    add_production("String", {"String", "StringCharacter"}, existing_integer_or_string_rule);
+    add_production("String", {"Integer", "StringCharacter"}, swap_to_string_rule);
+    add_production("String", {"Boolean", "StringCharacter"}, swap_to_string_rule);
+    add_production("String", {"StringCharacter"}, new_string_rule);
+
     add_production("Boolean", {"True"}, boolean_rule);
     add_production("Boolean", {"False"}, boolean_rule);
-
-    add_production("String", {"String", "StringCharacter"}, existing_integer_or_string_rule);
-    add_production("String", {"StringCharacter"}, new_string_rule);
 
     add_production("Integer", {"Integer", "Numeric"}, existing_integer_or_string_rule);
     add_production("Integer", {"Numeric"}, new_integer_rule);

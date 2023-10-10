@@ -14,6 +14,20 @@ enum class JsonValueType {
     List
 };
 
+inline std::string print_json_type (JsonValueType json_value_type)
+{
+    switch (json_value_type)
+    {
+        case JsonValueType::Integer : return "integer" ;
+        case JsonValueType::Boolean: return "boolean";
+        case JsonValueType::String: return "string";
+        case JsonValueType::Dictionary: return "dictionary";
+        case JsonValueType::List: return "list";
+        // omit default case to trigger compiler warning for missing cases
+    }
+    return "invalid";
+}
+
 // ASTs used in CustomParser AST
 class JsonValueAST : public ParserAST {
 public:
@@ -22,13 +36,23 @@ public:
 
     auto add_character(char character) -> void { m_value.push_back(character); }
 
+    auto change_type(JsonValueType type) -> void { m_type = type; }
+
     auto get_value() const -> std::string const& { return m_value; }
 
-    auto print() -> std::string {
-        if (m_type == JsonValueType::String) {
-            return "\"" + m_value + "\"";
+    auto print(bool with_types) -> std::string {
+        std::string output;
+        if(with_types) {
+            output += "<";
+            output += print_json_type(m_type);
+            output += ">";
         }
-        return m_value;
+        if (m_type == JsonValueType::String) {
+            output += "\"" + m_value + "\"";
+        } else {
+            output += m_value;
+        }
+        return output;
     }
 
     std::string m_value;
@@ -46,11 +70,11 @@ public:
             : m_key("key" + std::to_string(bad_key_counter++)),
               m_value_ast(std::move(value_ast)) {}
 
-    auto print() -> std::string {
+    auto print(bool with_types) -> std::string {
         std::string output = "\"" + m_key + "\"";
         output += ":";
         auto* value_ptr = dynamic_cast<JsonValueAST*>(m_value_ast.get());
-        output += value_ptr->print();
+        output += value_ptr->print(with_types);
         return output;
     }
 
@@ -67,11 +91,11 @@ public:
         m_object_asts.push_back(std::move(object_ast));
     }
 
-    auto print() -> std::string {
+    auto print(bool with_types = false) -> std::string {
         std::string output = "{";
         for (auto const& object_ast : m_object_asts) {
             auto* object_ptr = dynamic_cast<JsonObjectAST*>(object_ast.get());
-            output += object_ptr->print();
+            output += object_ptr->print(with_types);
             output += ",";
         }
         output.pop_back();
@@ -109,15 +133,14 @@ private:
      * Add all productions needed for json parsing
      */
     auto add_productions() -> void;
-    
+
     /**
      * A semantic rule that needs access to m_bad_key_counter
      * @param m
      * @return std::unique_ptr<ParserAST>
      */
     auto bad_json_object_rule(NonTerminal* m) -> std::unique_ptr<ParserAST>;
-    
-    
+
     uint32_t m_bad_key_counter{0};
 };
 }  // namespace log_surgeon
