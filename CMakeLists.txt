@@ -23,6 +23,8 @@ set(SOURCE_FILES
     src/log_surgeon/BufferParser.cpp
     src/log_surgeon/BufferParser.hpp
     src/log_surgeon/Constants.hpp
+    src/log_surgeon/CustomParser.cpp
+    src/log_surgeon/CustomParser.hpp
     src/log_surgeon/FileReader.cpp
     src/log_surgeon/FileReader.hpp
     src/log_surgeon/LALR1Parser.cpp

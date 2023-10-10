@@ -12,7 +12,7 @@ endif()
 # files.
 # For example, if log-surgeon was installed to ~/.local:
 # set(log_surgeon_DIR "~/.local/lib/cmake/log_surgeon/")
-find_package(log_surgeon REQUIRED)
+add_subdirectory(.. log-surgeon-build EXCLUDE_FROM_ALL)
 
 function(add_to_target target libraries)
     target_link_libraries(${target} ${libraries})
@@ -33,3 +33,6 @@ add_to_target(buffer-parser "${libraries}")
 
 add_executable(reader-parser reader-parser.cpp)
 add_to_target(reader-parser "${libraries}")
+
+add_executable(custom-parser custom-parser.cpp)
+add_to_target(custom-parser "${libraries}")

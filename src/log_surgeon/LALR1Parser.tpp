@@ -616,7 +616,7 @@ auto LALR1Parser<NFAStateType, DFAStateType>::report_error() -> std::string {
         error_type.pop_back();
         error_type += " before '" + unescape(token.to_string()[0]) + "' token";
     }
-    std::string error_string = "Schema:" + std::to_string(line_num + 1) + ":"
+    std::string error_string = "File:" + std::to_string(line_num + 1) + ":"
                                + std::to_string(consumed_input.size() + 1)
                                + ": error: " + error_type + "\n";
     for (int i = 0; i < 10; i++) {
