@@ -138,6 +138,12 @@ auto CustomParser::parse_json_like_string(std::string const& json_like_string)
         unparsed_string_pos += count;
         return ErrorCode::Success;
     }};
+
+    // Can reset the buffers at this point and allow reading
+    if (NonTerminal::m_next_children_start > cSizeOfAllChildren / 2) {
+        NonTerminal::m_next_children_start = 0;
+    }
+    // TODO: for super long strings (10000+ tokens) parse can currently crash
     NonTerminal nonterminal = parse(reader);
     std::unique_ptr<JsonRecordAST> json_record_ast(
             dynamic_cast<JsonRecordAST*>(nonterminal.get_parser_ast().release())
