@@ -11,8 +11,8 @@ using namespace log_surgeon;
 
 /// TODO: json_like_string ending in comma is not handled
 auto main() -> int {
-    std::string json_like_string = " some_text1, a_random_key1=10, a_random_key2=true, some_text2,"
-                                   " a_random_key3=some_value, some_text3";
+    std::string json_like_string = " empty=, some_text1, a_random_key1=10, a_random_key2=true, some_text2,"
+                                   " a_random_key3=some_value, some_text3, empty=";
     CustomParser custom_parser;
     std::unique_ptr<JsonRecordAST> json_record_ast1
             = custom_parser.parse_json_like_string(json_like_string);

@@ -75,6 +75,10 @@ public:
             : m_key("key" + std::to_string(bad_key_counter++)),
               m_value_ast(std::move(value_ast)) {}
 
+    auto set_value(std::unique_ptr<ParserAST>& value_ast) -> void {
+        m_value_ast = std::move(value_ast);
+    }
+
     auto print(bool with_types) -> std::string {
         std::string output = "\"" + m_key + "\"";
         output += ":";
