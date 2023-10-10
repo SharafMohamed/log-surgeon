@@ -21,8 +21,11 @@ using std::unique_ptr;
 
 namespace log_surgeon {
 static auto boolean_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
-    string r0 = m->token_cast(0)->to_string();
-    return make_unique<JsonValueAST>(r0, JsonValueType::Boolean);
+    if (m->token_cast(0)->to_string()[0] == 't') {
+        return make_unique<JsonValueAST>("true", JsonValueType::Boolean);
+    } else {
+        return make_unique<JsonValueAST>("false", JsonValueType::Boolean);
+    }
 }
 
 static auto new_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
@@ -49,6 +52,25 @@ static auto swap_to_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     string r2 = m->token_cast(1)->to_string();
     r1_ptr->change_type(JsonValueType::String);
     r1_ptr->add_character(r2[0]);
+    return std::move(r1);
+}
+
+static auto boolean_existing_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+    unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
+    auto* r1_ptr = dynamic_cast<JsonValueAST*>(r1.get());
+    unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
+    auto* r2_ptr = dynamic_cast<JsonValueAST*>(r2.get());
+    r1_ptr->add_string(r2_ptr->get_value());
+    return std::move(r1);
+}
+
+static auto boolean_swap_to_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+    unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
+    auto* r1_ptr = dynamic_cast<JsonValueAST*>(r1.get());
+    unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
+    auto* r2_ptr = dynamic_cast<JsonValueAST*>(r2.get());
+    r1_ptr->change_type(JsonValueType::String);
+    r1_ptr->add_string(r2_ptr->get_value());
     return std::move(r1);
 }
 
@@ -148,6 +170,7 @@ void CustomParser::add_productions() {
     // add_production("Value", {"Dict"}, value_rule);
     add_production("Value", {"Boolean"}, value_rule);
     add_production("Value", {"String"}, value_rule);
+    add_production("Value", {"EqualString"}, value_rule);
     add_production("Value", {"Integer"}, value_rule);
 
     // todo: for now we treat list as a string
@@ -161,9 +184,21 @@ void CustomParser::add_productions() {
     // add_production("IncompleteDict", {"List", "Comma", "Pair"}, existing_dictionary_rule);
     // add_production("Pair", {"String", "Colon", "Value"}, pair_rule);
 
+    add_production("EqualString", {"String", "Equal"}, existing_integer_or_string_rule);
+    add_production("EqualString", {"EqualString", "Equal"}, existing_integer_or_string_rule);
+    add_production(
+            "EqualString",
+            {"EqualString", "StringCharacter"},
+            existing_integer_or_string_rule
+    );
+    add_production("EqualString", {"EqualString", "Boolean"}, boolean_existing_string_rule);
+
     add_production("String", {"String", "StringCharacter"}, existing_integer_or_string_rule);
     add_production("String", {"Integer", "StringCharacter"}, swap_to_string_rule);
     add_production("String", {"Boolean", "StringCharacter"}, swap_to_string_rule);
+    add_production("String", {"String", "Boolean"}, boolean_existing_string_rule);
+    add_production("String", {"Integer", "Boolean"}, boolean_swap_to_string_rule);
+    add_production("String", {"Boolean", "Boolean"}, boolean_swap_to_string_rule);
     add_production("String", {"StringCharacter"}, new_string_rule);
 
     add_production("Boolean", {"True"}, boolean_rule);

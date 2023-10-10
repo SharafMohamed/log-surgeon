@@ -14,16 +14,19 @@ enum class JsonValueType {
     List
 };
 
-inline std::string print_json_type (JsonValueType json_value_type)
-{
-    switch (json_value_type)
-    {
-        case JsonValueType::Integer : return "integer" ;
-        case JsonValueType::Boolean: return "boolean";
-        case JsonValueType::String: return "string";
-        case JsonValueType::Dictionary: return "dictionary";
-        case JsonValueType::List: return "list";
-        // omit default case to trigger compiler warning for missing cases
+inline std::string print_json_type(JsonValueType json_value_type) {
+    switch (json_value_type) {
+        case JsonValueType::Integer:
+            return "integer";
+        case JsonValueType::Boolean:
+            return "boolean";
+        case JsonValueType::String:
+            return "string";
+        case JsonValueType::Dictionary:
+            return "dictionary";
+        case JsonValueType::List:
+            return "list";
+            // omit default case to trigger compiler warning for missing cases
     }
     return "invalid";
 }
@@ -32,9 +35,11 @@ inline std::string print_json_type (JsonValueType json_value_type)
 class JsonValueAST : public ParserAST {
 public:
     // Constructor
-    JsonValueAST(std::string& value, JsonValueType type) : m_value(value), m_type(type) {}
+    JsonValueAST(std::string const& value, JsonValueType type) : m_value(value), m_type(type) {}
 
     auto add_character(char character) -> void { m_value.push_back(character); }
+
+    auto add_string(std::string const& str) -> void { m_value += str; }
 
     auto change_type(JsonValueType type) -> void { m_type = type; }
 
@@ -42,7 +47,7 @@ public:
 
     auto print(bool with_types) -> std::string {
         std::string output;
-        if(with_types) {
+        if (with_types) {
             output += "<";
             output += print_json_type(m_type);
             output += ">";
