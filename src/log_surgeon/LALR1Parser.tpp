@@ -74,6 +74,7 @@ void LALR1Parser<NFAStateType, DFAStateType>::add_rule(
     m_terminals.insert(this->m_lexer.m_symbol_id[name]);
 }
 
+// TODO: this is useless and should be removed
 template <typename NFAStateType, typename DFAStateType>
 void LALR1Parser<NFAStateType, DFAStateType>::add_token_group(
         std::string const& name,

@@ -155,7 +155,7 @@ void CustomParser::add_lexical_rules() {
     // add_token("Quotation", '"');
     add_token("Comma", ',');
     add_token("Equal", '=');
-    add_token_group("Numeric", make_unique<RegexASTGroupByte>('0', '9'));
+    add_rule("Numeric", make_unique<RegexASTGroupByte>('0', '9'));
     // add_token("Lbracket", '[');
     // add_token("Rbracket", ']');
     // add_token("Lbrace", '{');
@@ -166,7 +166,7 @@ void CustomParser::add_lexical_rules() {
     unique_ptr<RegexASTGroupByte> string_character = make_unique<RegexASTGroupByte>();
     string_character->add_literal(',');
     string_character->add_literal('=');
-    add_token_group("StringCharacter", std::move(string_character));
+    add_rule("StringCharacter", std::move(string_character));
 }
 
 // " request and response, importance=high, this is some text, status=low, memory=10GB"
@@ -202,6 +202,7 @@ void CustomParser::add_productions() {
     // add_production("IncompleteDict", {"List", "Comma", "Pair"}, existing_dictionary_rule);
     // add_production("Pair", {"String", "Colon", "Value"}, pair_rule);
 
+    add_production("EqualString", {"Equal"}, new_string_rule);
     add_production("EqualString", {"String", "Equal"}, existing_integer_or_string_rule);
     add_production("EqualString", {"EqualString", "Equal"}, existing_integer_or_string_rule);
     add_production(
