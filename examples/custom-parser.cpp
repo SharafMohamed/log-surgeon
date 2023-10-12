@@ -23,7 +23,7 @@ auto main() -> int {
                        " someId=0e820f76-104d-4b1d-b93a-fc1837a63efa, duration=21, bool=true, "
                        "almost-bool2=truefalse, almost-bool2=truer, "
                        "fakeRespHeaders=FA_KE_ID=0:FAKE_LOCALE_ID=en_US:x-o-fake-id=0:FA_KER_ID=0, "
-                       "equal==123";
+                       "equal==123, equalint=123=123, equalbool=true=false";
     std::unique_ptr<JsonRecordAST> json_record_ast2
             = custom_parser.parse_json_like_string(json_like_string);
     std::cout << "Input:" << json_like_string << std::endl;

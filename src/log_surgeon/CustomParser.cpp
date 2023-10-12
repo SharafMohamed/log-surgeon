@@ -204,6 +204,8 @@ void CustomParser::add_productions() {
 
     add_production("EqualString", {"Equal"}, new_string_rule);
     add_production("EqualString", {"String", "Equal"}, existing_integer_or_string_rule);
+    add_production("EqualString", {"Integer", "Equal"}, swap_to_string_rule);
+    add_production("EqualString", {"Boolean", "Equal"}, swap_to_string_rule);
     add_production("EqualString", {"EqualString", "Equal"}, existing_integer_or_string_rule);
     add_production(
             "EqualString",
