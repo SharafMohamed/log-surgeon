@@ -14,6 +14,8 @@
 
 using RegexASTGroupByte = log_surgeon::finite_automata::RegexASTGroup<
         log_surgeon::finite_automata::RegexNFAByteState>;
+using RegexASTMultiplicationByte = log_surgeon::finite_automata::RegexASTMultiplication<
+        log_surgeon::finite_automata::RegexNFAByteState>;
 
 using std::make_unique;
 using std::string;
@@ -42,7 +44,7 @@ static auto existing_integer_or_string_rule(NonTerminal* m) -> unique_ptr<Parser
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     auto* r1_ptr = dynamic_cast<JsonValueAST*>(r1.get());
     string r2 = m->token_cast(1)->to_string();
-    r1_ptr->add_character(r2[0]);
+    r1_ptr->add_string(r2);
     return std::move(r1);
 }
 
@@ -51,7 +53,7 @@ static auto swap_to_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     auto* r1_ptr = dynamic_cast<JsonValueAST*>(r1.get());
     string r2 = m->token_cast(1)->to_string();
     r1_ptr->change_type(JsonValueType::String);
-    r1_ptr->add_character(r2[0]);
+    r1_ptr->add_string(r2);
     return std::move(r1);
 }
 
@@ -166,13 +168,19 @@ void CustomParser::add_lexical_rules() {
     unique_ptr<RegexASTGroupByte> string_character = make_unique<RegexASTGroupByte>();
     string_character->add_literal(',');
     string_character->add_literal('=');
-    add_rule("StringCharacter", std::move(string_character));
+    unique_ptr<RegexASTMultiplicationByte> string_character_star
+            = make_unique<RegexASTMultiplicationByte>(std::move(string_character), 1, 0);
+    add_rule("StringToken", std::move(string_character_star));
 }
 
 // " request and response, importance=high, this is some text, status=low, memory=10GB"
 void CustomParser::add_productions() {
     add_production("JsonRecord", {"JsonRecord", "Comma", "JsonObject"}, existing_json_record_rule);
-    add_production("JsonRecord", {"JsonRecord", "Comma", "GoodJsonObject"}, existing_json_record_rule);
+    add_production(
+            "JsonRecord",
+            {"JsonRecord", "Comma", "GoodJsonObject"},
+            existing_json_record_rule
+    );
     add_production("JsonRecord", {"JsonObject"}, new_json_record_rule);
     add_production("JsonRecord", {"GoodJsonObject"}, new_json_record_rule);
 
@@ -206,21 +214,18 @@ void CustomParser::add_productions() {
     add_production("EqualString", {"String", "Equal"}, existing_integer_or_string_rule);
     add_production("EqualString", {"Integer", "Equal"}, swap_to_string_rule);
     add_production("EqualString", {"Boolean", "Equal"}, swap_to_string_rule);
+    add_production("EqualString", {"EqualString", "Boolean"}, boolean_existing_string_rule);
     add_production("EqualString", {"EqualString", "Equal"}, existing_integer_or_string_rule);
-    add_production(
-            "EqualString",
-            {"EqualString", "StringCharacter"},
-            existing_integer_or_string_rule
-    );
+    add_production("EqualString", {"EqualString", "StringToken"}, existing_integer_or_string_rule);
     add_production("EqualString", {"EqualString", "Boolean"}, boolean_existing_string_rule);
 
-    add_production("String", {"String", "StringCharacter"}, existing_integer_or_string_rule);
-    add_production("String", {"Integer", "StringCharacter"}, swap_to_string_rule);
-    add_production("String", {"Boolean", "StringCharacter"}, swap_to_string_rule);
+    add_production("String", {"String", "StringToken"}, existing_integer_or_string_rule);
+    add_production("String", {"Integer", "StringToken"}, swap_to_string_rule);
+    add_production("String", {"Boolean", "StringToken"}, swap_to_string_rule);
     add_production("String", {"String", "Boolean"}, boolean_existing_string_rule);
     add_production("String", {"Integer", "Boolean"}, boolean_swap_to_string_rule);
     add_production("String", {"Boolean", "Boolean"}, boolean_swap_to_string_rule);
-    add_production("String", {"StringCharacter"}, new_string_rule);
+    add_production("String", {"StringToken"}, new_string_rule);
 
     add_production("Boolean", {"True"}, boolean_rule);
     add_production("Boolean", {"False"}, boolean_rule);

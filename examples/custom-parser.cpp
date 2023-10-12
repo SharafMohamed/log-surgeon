@@ -19,6 +19,7 @@ auto main() -> int {
             = custom_parser.parse_json_like_string(json_like_string);
     std::cout << "Input:" << json_like_string << std::endl;
     std::cout << "AST human readable output:" << json_record_ast1->print(true) << std::endl;
+
     json_like_string = "Request and Response Information, SOME_REDUCED_PAYLOAD=null,"
                        " someId=0e820f76-104d-4b1d-b93a-fc1837a63efa, duration=21, bool=true, "
                        "almost-bool2=truefalse, almost-bool2=truer, "
@@ -28,6 +29,16 @@ auto main() -> int {
             = custom_parser.parse_json_like_string(json_like_string);
     std::cout << "Input:" << json_like_string << std::endl;
     std::cout << "AST human readable output:" << json_record_ast2->print(true) << std::endl;
+
+    json_like_string
+            = "LogFuncArg(level=INFO,log={\\\"traceId\\\":\\\"u\\\",\\\"t\\\":\\\"s/r+qp+on/m/l/k/"
+              "j/i+h+gf+e+d/c/b+a/z+y+x+w/vu++t+s/r/q+p+o+n/m/lk/ji/h/gf+ed+c/b/"
+              "a\\\"})\",\"Verbosity\":\"INFO\"},\"time\":\"2022-02-22T07:20:20.222222222Z";
+
+    std::unique_ptr<JsonRecordAST> json_record_ast3
+            = custom_parser.parse_json_like_string(json_like_string);
+    std::cout << "Input:" << json_like_string << std::endl;
+    std::cout << "AST human readable output:" << json_record_ast3->print(true) << std::endl;
 
     return 0;
 }
