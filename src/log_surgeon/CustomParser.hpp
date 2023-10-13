@@ -101,14 +101,13 @@ public:
     }
 
     auto print(bool with_types = false) -> std::string {
-        std::string output = "{";
+        std::string output = "\n";
         for (auto const& object_ast : m_object_asts) {
             auto* object_ptr = dynamic_cast<JsonObjectAST*>(object_ast.get());
             output += object_ptr->print(with_types);
-            output += ",";
+            output += "\n";
         }
         output.pop_back();
-        output += "}";
         return output;
     }
 
@@ -126,13 +125,6 @@ public:
             -> std::unique_ptr<JsonRecordAST>;
 
 private:
-    struct JsonNode {
-        std::string key;
-        std::vector<std::unique_ptr<JsonNode>> value;
-    };
-
-    JsonNode m_json_tree_root;
-
     /**
      * Add all lexical rules needed for json lexing
      */

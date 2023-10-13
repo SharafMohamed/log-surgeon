@@ -23,11 +23,7 @@ using std::unique_ptr;
 
 namespace log_surgeon {
 static auto boolean_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
-    if (m->token_cast(0)->to_string()[0] == 't') {
-        return make_unique<JsonValueAST>("true", JsonValueType::Boolean);
-    } else {
-        return make_unique<JsonValueAST>("false", JsonValueType::Boolean);
-    }
+    return make_unique<JsonValueAST>(m->token_cast(0)->to_string(), JsonValueType::Boolean);
 }
 
 static auto new_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
@@ -35,12 +31,12 @@ static auto new_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     return make_unique<JsonValueAST>(r0, JsonValueType::String);
 }
 
-static auto new_integer_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+static auto integer_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     string r0 = m->token_cast(0)->to_string();
     return make_unique<JsonValueAST>(r0, JsonValueType::Integer);
 }
 
-static auto existing_integer_or_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+static auto existing_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     auto* r1_ptr = dynamic_cast<JsonValueAST*>(r1.get());
     string r2 = m->token_cast(1)->to_string();
@@ -54,25 +50,6 @@ static auto swap_to_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     string r2 = m->token_cast(1)->to_string();
     r1_ptr->change_type(JsonValueType::String);
     r1_ptr->add_string(r2);
-    return std::move(r1);
-}
-
-static auto boolean_existing_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
-    unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
-    auto* r1_ptr = dynamic_cast<JsonValueAST*>(r1.get());
-    unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
-    auto* r2_ptr = dynamic_cast<JsonValueAST*>(r2.get());
-    r1_ptr->add_string(r2_ptr->get_value());
-    return std::move(r1);
-}
-
-static auto boolean_swap_to_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
-    unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
-    auto* r1_ptr = dynamic_cast<JsonValueAST*>(r1.get());
-    unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
-    auto* r2_ptr = dynamic_cast<JsonValueAST*>(r2.get());
-    r1_ptr->change_type(JsonValueType::String);
-    r1_ptr->add_string(r2_ptr->get_value());
     return std::move(r1);
 }
 
@@ -116,7 +93,6 @@ static auto existing_json_record_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
 }
 
 CustomParser::CustomParser() {
-    m_json_tree_root.key = "root";
     add_lexical_rules();
     add_productions();
     generate();
@@ -141,10 +117,12 @@ auto CustomParser::parse_json_like_string(std::string const& json_like_string)
         return ErrorCode::Success;
     }};
 
+    // TODO: this should be done in parse() as a reset() function
     // Can reset the buffers at this point and allow reading
     if (NonTerminal::m_next_children_start > cSizeOfAllChildren / 2) {
         NonTerminal::m_next_children_start = 0;
     }
+    m_bad_key_counter = 0;
     // TODO: for super long strings (10000+ tokens) parse can currently crash
     NonTerminal nonterminal = parse(reader);
     std::unique_ptr<JsonRecordAST> json_record_ast(
@@ -157,20 +135,22 @@ void CustomParser::add_lexical_rules() {
     // add_token("Quotation", '"');
     add_token("Comma", ',');
     add_token("Equal", '=');
-    add_rule("Numeric", make_unique<RegexASTGroupByte>('0', '9'));
+    auto digit = make_unique<RegexASTGroupByte>('0', '9');
+    auto digit_plus = make_unique<RegexASTMultiplicationByte>(std::move(digit), 1, 0);
+    add_rule("IntegerToken", std::move(digit_plus));
     // add_token("Lbracket", '[');
     // add_token("Rbracket", ']');
     // add_token("Lbrace", '{');
     // add_token("Rbrace", '}');
-    add_token_chain("True", "true");
-    add_token_chain("False", "false");
+    add_token_chain("BooleanToken", "true");
+    add_token_chain("BooleanToken", "false");
     // default constructs to a m_negate group
     unique_ptr<RegexASTGroupByte> string_character = make_unique<RegexASTGroupByte>();
     string_character->add_literal(',');
     string_character->add_literal('=');
-    unique_ptr<RegexASTMultiplicationByte> string_character_star
+    unique_ptr<RegexASTMultiplicationByte> string_character_plus
             = make_unique<RegexASTMultiplicationByte>(std::move(string_character), 1, 0);
-    add_rule("StringToken", std::move(string_character_star));
+    add_rule("StringToken", std::move(string_character_plus));
 }
 
 // " request and response, importance=high, this is some text, status=low, memory=10GB"
@@ -195,9 +175,9 @@ void CustomParser::add_productions() {
     // add_production("Value", {"CompleteList"}, value_rule);
     // add_production("Value", {"Dict"}, value_rule);
     add_production("Value", {"Boolean"}, value_rule);
+    add_production("Value", {"Integer"}, value_rule);
     add_production("Value", {"String"}, value_rule);
     add_production("Value", {"EqualString"}, value_rule);
-    add_production("Value", {"Integer"}, value_rule);
 
     // todo: for now we treat list as a string
     // add_production("CompleteList", {"IncompleteList", "Rbracket"}, finished_list_rule);
@@ -211,26 +191,14 @@ void CustomParser::add_productions() {
     // add_production("Pair", {"String", "Colon", "Value"}, pair_rule);
 
     add_production("EqualString", {"Equal"}, new_string_rule);
-    add_production("EqualString", {"String", "Equal"}, existing_integer_or_string_rule);
+    add_production("EqualString", {"String", "Equal"}, existing_string_rule);
     add_production("EqualString", {"Integer", "Equal"}, swap_to_string_rule);
     add_production("EqualString", {"Boolean", "Equal"}, swap_to_string_rule);
-    add_production("EqualString", {"EqualString", "Boolean"}, boolean_existing_string_rule);
-    add_production("EqualString", {"EqualString", "Equal"}, existing_integer_or_string_rule);
-    add_production("EqualString", {"EqualString", "StringToken"}, existing_integer_or_string_rule);
-    add_production("EqualString", {"EqualString", "Boolean"}, boolean_existing_string_rule);
+    add_production("EqualString", {"EqualString", "Equal"}, existing_string_rule);
+    add_production("EqualString", {"EqualString", "StringToken"}, existing_string_rule);
 
-    add_production("String", {"String", "StringToken"}, existing_integer_or_string_rule);
-    add_production("String", {"Integer", "StringToken"}, swap_to_string_rule);
-    add_production("String", {"Boolean", "StringToken"}, swap_to_string_rule);
-    add_production("String", {"String", "Boolean"}, boolean_existing_string_rule);
-    add_production("String", {"Integer", "Boolean"}, boolean_swap_to_string_rule);
-    add_production("String", {"Boolean", "Boolean"}, boolean_swap_to_string_rule);
     add_production("String", {"StringToken"}, new_string_rule);
-
-    add_production("Boolean", {"True"}, boolean_rule);
-    add_production("Boolean", {"False"}, boolean_rule);
-
-    add_production("Integer", {"Integer", "Numeric"}, existing_integer_or_string_rule);
-    add_production("Integer", {"Numeric"}, new_integer_rule);
+    add_production("Integer", {"IntegerToken"}, integer_rule);
+    add_production("Boolean", {"BooleanToken"}, boolean_rule);
 }
 }  // namespace log_surgeon
