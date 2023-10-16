@@ -63,15 +63,15 @@ auto CustomParser::bad_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST>
     return make_unique<JsonObjectAST>(m_bad_key_counter, r1);
 }
 
-static auto existing_good_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+static auto good_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
-    auto* r1_ptr = dynamic_cast<JsonObjectAST*>(r1.get());
-    unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
-    r1_ptr->set_value(r2);
+    auto* r1_ptr = dynamic_cast<JsonValueAST*>(r1.get());
+    unique_ptr<ParserAST>& r3 = m->non_terminal_cast(2)->get_parser_ast();
+    return make_unique<JsonObjectAST>(r1_ptr->get_value(), r3);
     return std::move(r1);
 }
 
-static auto good_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+static auto empty_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     auto* r1_ptr = dynamic_cast<JsonValueAST*>(r1.get());
     std::unique_ptr<ParserAST> empty_json_value_AST
@@ -156,16 +156,10 @@ void CustomParser::add_lexical_rules() {
 // " request and response, importance=high, this is some text, status=low, memory=10GB"
 void CustomParser::add_productions() {
     add_production("JsonRecord", {"JsonRecord", "Comma", "JsonObject"}, existing_json_record_rule);
-    add_production(
-            "JsonRecord",
-            {"JsonRecord", "Comma", "GoodJsonObject"},
-            existing_json_record_rule
-    );
     add_production("JsonRecord", {"JsonObject"}, new_json_record_rule);
-    add_production("JsonRecord", {"GoodJsonObject"}, new_json_record_rule);
 
-    add_production("JsonObject", {"GoodJsonObject", "Value"}, existing_good_json_object_rule);
-    add_production("GoodJsonObject", {"String", "Equal"}, good_json_object_rule);
+    add_production("JsonObject", {"String", "Equal", "Value"}, good_json_object_rule);
+    add_production("JsonObject", {"String", "Equal"}, empty_json_object_rule);
     add_production(
             "JsonObject",
             {"String"},
@@ -173,7 +167,7 @@ void CustomParser::add_productions() {
     );
 
     // add_production("Value", {"CompleteList"}, value_rule);
-    // add_production("Value", {"Dict"}, value_rule);
+    //add_production("Value", {"CompleteDict"}, value_rule);
     add_production("Value", {"Boolean"}, value_rule);
     add_production("Value", {"Integer"}, value_rule);
     add_production("Value", {"String"}, value_rule);
