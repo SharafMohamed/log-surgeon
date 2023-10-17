@@ -136,7 +136,6 @@ static auto existing_json_record_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     r1_ptr->add_object_ast(r3);
     return std::move(r1);
 }
-
 ```
 Each code fragment takes as an argument a non-terminal representing the *head*
 of the associated grammar rule. This non-terminal contains a vector of
@@ -168,10 +167,10 @@ auto ast = custom_parser.parse_input(json_like_string);
 auto* my_type_ast = dynamic_cast<MyTypeAST*>(ast.get());
 ```
 The value returned from parse_input() is type ParserAST. To add functionality,
-create inherit from ParserAST to create MyTypeAST. After this, MyTypeAST can
+inherit from ParserAST to create MyTypeAST. After this, MyTypeAST can
 be processed as desired. 
 
-[custom-parser.cpp][2] contains examples of using the json-like parser to parse
+[custom-parser.cpp][2] contains examples of using a json-like parser to parse
 json-like strings and print valid json. 
 
 [1]: ../src/log_surgeon/CustomParser.cpp
