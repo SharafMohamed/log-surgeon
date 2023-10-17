@@ -40,8 +40,10 @@ auto JsonValueAST::print(bool with_types) -> std::string {
         output += ">";
     }
     if (m_type == JsonValueType::Dictionary) {
-        auto* json_record_ast = dynamic_cast<JsonRecordAST*>(m_dictionary_json_record.get());
-        output += json_record_ast->print(false);
+        if(m_dictionary_json_record != nullptr) {
+            auto* json_record_ast = dynamic_cast<JsonRecordAST*>(m_dictionary_json_record.get());
+            output += json_record_ast->print(false);
+        }
     } else if (m_type == JsonValueType::String) {
         // TODO: this is a hacky fix for now to deal with dictionaries turned into strings
         if(m_dictionary_json_record != nullptr) {
@@ -72,6 +74,10 @@ static auto integer_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
 static auto dictionary_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
     return make_unique<JsonValueAST>(std::move(r2));
+}
+
+static auto empty_dictionary_rule(NonTerminal*) -> unique_ptr<ParserAST> {
+    return make_unique<JsonValueAST>(nullptr);
 }
 
 auto CustomParser::bad_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
@@ -215,6 +221,7 @@ void CustomParser::add_productions() {
     );
     add_production("Value", {"StringToken"}, new_string_rule);
     add_production("Value", {"Lbrace", "JsonRecord", "Rbrace"}, dictionary_rule);
+    add_production("Value", {"Lbrace", "Rbrace"}, empty_dictionary_rule);
     add_production("Value", {"BooleanToken"}, boolean_rule);
     add_production("Value", {"IntegerToken"}, integer_rule);
 }

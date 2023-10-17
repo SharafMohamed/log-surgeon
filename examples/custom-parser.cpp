@@ -12,7 +12,7 @@ using namespace log_surgeon;
 /// TODO: json_like_string ending in comma is not handled
 auto main() -> int {
     std::string json_like_string
-            = " empty=, some_text1, a_random_key1=10, a_random_key2=true, some_text2,"
+            = " empty=, empty_dict={}, some_text1, a_random_key1=10, a_random_key2=true, some_text2,"
               " a_random_key3=some_value, some_text3, empty=, a_random_key4=123asd, "
               "a_random_key4==false";
     CustomParser custom_parser;

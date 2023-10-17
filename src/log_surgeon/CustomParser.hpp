@@ -94,6 +94,7 @@ public:
         for (auto const& object_ast : m_object_asts) {
             auto* object_ptr = dynamic_cast<JsonObjectAST*>(object_ast.get());
             output += object_ptr->print(with_types);
+            output += ",";
         }
         output.pop_back();
         return output;
