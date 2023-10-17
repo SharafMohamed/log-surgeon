@@ -18,9 +18,9 @@ lbrace:{
 rbrace:}
 comma:,
 equal:=
-integer_token:[0-9]+
-boolean_token:(true)|(false)
-string_token:[^{},=]+
+integer:[0-9]+
+boolean:(true)|(false)
+string:[^{},=]+
 ```
 
 [CustomParser.cpp][1] has an example implementation of these variable rules:
@@ -66,11 +66,11 @@ GoodJsonObject --> GoodJsonObject equal
                --> BadJsonObject equal
 BadJsonObject --> BadJsonObject Value
               --> Value
-Value --> stringToken
+Value --> string
       --> lBrace JsonRecord rBrace
       --> lBrace rBrace
-      --> booleanToken
-      --> integerToken
+      --> boolean
+      --> integer
 ```
 As tokens are matched in the input they are pushed onto a stack. The LALR1 
 parser uses the specified grammar to determine whether to *shift* and add
