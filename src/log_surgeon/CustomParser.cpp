@@ -25,14 +25,12 @@ namespace log_surgeon {
 JsonValueAST::JsonValueAST(std::string const& value, JsonValueType type)
         : m_value(value),
           m_type(type),
-          m_dictonary_json_objects() {}
+          m_dictionary_json_record() {}
 
-JsonValueAST::JsonValueAST(std::unique_ptr<ParserAST> json_object_ast)
+JsonValueAST::JsonValueAST(std::unique_ptr<ParserAST> json_record_ast)
         : m_value(""),
           m_type(JsonValueType::Dictionary),
-          m_dictonary_json_objects() {
-    m_dictonary_json_objects.push_back(std::move(json_object_ast));
-}
+          m_dictionary_json_record(std::move(json_record_ast)) {}
 
 auto JsonValueAST::print(bool with_types) -> std::string {
     std::string output;
@@ -42,9 +40,8 @@ auto JsonValueAST::print(bool with_types) -> std::string {
         output += ">";
     }
     if (m_type == JsonValueType::Dictionary) {
-        for (std::unique_ptr<ParserAST>& json_object : m_dictonary_json_objects) {
-            output += dynamic_cast<JsonObjectAST*>(json_object.get())->print(false);
-        }
+        auto* json_record_ast = dynamic_cast<JsonRecordAST*>(m_dictionary_json_record.get());
+        output += json_record_ast->print(false);
     } else if (m_type == JsonValueType::String) {
         output += "\"" + m_value + "\"";
     } else {
@@ -91,12 +88,12 @@ static auto existing_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     auto* value_ast = dynamic_cast<JsonValueAST*>(r1_ptr->m_value_ast.get());
     unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
     auto* r2_ptr = dynamic_cast<JsonValueAST*>(r2.get());
-    if (value_ast->m_value.empty()) {
-        value_ast->change_type(r2_ptr->m_type);
+    if (value_ast->m_value.empty() && value_ast->m_type == JsonValueType::String) {
+        r1_ptr->m_value_ast = std::move(r2);
     } else {
         value_ast->change_type(JsonValueType::String);
+        value_ast->add_string(r2_ptr->get_value());
     }
-    value_ast->add_string(r2_ptr->get_value());
     return std::move(r1);
 }
 
@@ -194,13 +191,16 @@ void CustomParser::add_productions() {
             existing_json_record_rule
     );
     add_production("JsonRecord", {"GoodJsonObject"}, new_json_record_rule);
-    add_production("JsonRecord", {"JsonRecord", "Comma", "BadJsonObject"},existing_json_record_rule); 
-    add_production("JsonRecord", {"BadJsonObject"},new_json_record_rule);
-    add_production("GoodJsonObject", {"GoodJsonObject", "Equal"}, char_json_object_rule);
+    add_production(
+            "JsonRecord",
+            {"JsonRecord", "Comma", "BadJsonObject"},
+            existing_json_record_rule
+    );
+    add_production("JsonRecord", {"BadJsonObject"}, new_json_record_rule);
     add_production("GoodJsonObject", {"GoodJsonObject", "Equal"}, char_json_object_rule);
     add_production("GoodJsonObject", {"GoodJsonObject", "Value"}, existing_json_object_rule);
     add_production("GoodJsonObject", {"BadJsonObject", "Equal"}, new_good_json_object_rule);
-    add_production("BadJsonObject", {"BadJsonObject","Value"}, existing_json_object_rule);
+    add_production("BadJsonObject", {"BadJsonObject", "Value"}, existing_json_object_rule);
     add_production(
             "BadJsonObject",
             {"Value"},
