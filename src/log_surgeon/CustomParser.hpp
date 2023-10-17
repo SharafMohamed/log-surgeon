@@ -6,6 +6,9 @@
 #include <log_surgeon/LALR1Parser.hpp>
 
 namespace log_surgeon {
+
+class JsonObjectAST;
+
 enum class JsonValueType {
     Integer,
     Boolean,
@@ -35,33 +38,27 @@ inline std::string print_json_type(JsonValueType json_value_type) {
 class JsonValueAST : public ParserAST {
 public:
     // Constructor
-    JsonValueAST(std::string const& value, JsonValueType type) : m_value(value), m_type(type) {}
+    JsonValueAST(std::string const& value, JsonValueType type);
+
+    JsonValueAST(std::unique_ptr<ParserAST> json_object_ast);
 
     auto add_character(char character) -> void { m_value.push_back(character); }
 
     auto add_string(std::string const& str) -> void { m_value += str; }
 
+    auto add_dictionary_object(std::unique_ptr<ParserAST> json_object_ast) -> void {
+        m_dictonary_json_objects.push_back(std::move(json_object_ast));
+    }
+
     auto change_type(JsonValueType type) -> void { m_type = type; }
 
     auto get_value() const -> std::string const& { return m_value; }
 
-    auto print(bool with_types) -> std::string {
-        std::string output;
-        if (with_types) {
-            output += "<";
-            output += print_json_type(m_type);
-            output += ">";
-        }
-        if (m_type == JsonValueType::String) {
-            output += "\"" + m_value + "\"";
-        } else {
-            output += m_value;
-        }
-        return output;
-    }
+    auto print(bool with_types) -> std::string;
 
     std::string m_value;
     JsonValueType m_type;
+    std::vector<std::unique_ptr<ParserAST>> m_dictonary_json_objects;
 };
 
 class JsonObjectAST : public ParserAST {
@@ -78,7 +75,7 @@ public:
     auto print(bool with_types) -> std::string {
         std::string output = "\"" + m_key + "\"";
         output += ":";
-        auto* value_ptr = dynamic_cast<JsonValueAST*>(m_value_ast.get());
+        auto* value_ptr = static_cast<JsonValueAST*>(m_value_ast.get());
         output += value_ptr->print(with_types);
         return output;
     }
