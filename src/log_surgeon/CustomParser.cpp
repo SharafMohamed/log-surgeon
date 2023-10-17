@@ -25,7 +25,7 @@ namespace log_surgeon {
 JsonValueAST::JsonValueAST(std::string const& value, JsonValueType type)
         : m_value(value),
           m_type(type),
-          m_dictionary_json_record() {}
+          m_dictionary_json_record(nullptr) {}
 
 JsonValueAST::JsonValueAST(std::unique_ptr<ParserAST> json_record_ast)
         : m_value(""),
@@ -43,6 +43,11 @@ auto JsonValueAST::print(bool with_types) -> std::string {
         auto* json_record_ast = dynamic_cast<JsonRecordAST*>(m_dictionary_json_record.get());
         output += json_record_ast->print(false);
     } else if (m_type == JsonValueType::String) {
+        // TODO: this is a hacky fix for now to deal with dictionaries turned into strings
+        if(m_dictionary_json_record != nullptr) {
+            auto* json_record_ast = dynamic_cast<JsonRecordAST*>(m_dictionary_json_record.get());
+            output += json_record_ast->print(false);
+        }
         output += "\"" + m_value + "\"";
     } else {
         output += m_value;
@@ -163,6 +168,8 @@ void CustomParser::add_lexical_rules() {
     // add_token("Quotation", '"');
     // add_token("Lbracket", '[');
     // add_token("Rbracket", ']');
+    //add_token("Lparen", '(');
+    //add_token("Rparen", ')');
     add_token("Lbrace", '{');
     add_token("Rbrace", '}');
     add_token("Comma", ',');

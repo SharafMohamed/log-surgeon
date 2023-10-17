@@ -32,13 +32,23 @@ auto main() -> int {
               << std::endl;
 
     json_like_string
-            = "LogFuncArg(level=INFO,log={\\\"traceId\\\":\\\"u\\\",\\\"t\\\":\\\"s/r+qp+on/m/l/k/"
+            = "level=INFO,log={\\\"traceId\\\":\\\"u\\\",\\\"t\\\":\\\"s/r+qp+on/m/l/k/"
               "j/i+h+gf+e+d/c/b+a/z+y+x+w/vu++t+s/r/q+p+o+n/m/lk/ji/h/gf+ed+c/b/"
-              "a\\\"},\"Verbosity\":\"INFO\",\"time\":\"2022-02-22T07:20:20.222222222Z";
+              "a\\\"}";
 
     std::unique_ptr<JsonRecordAST> json_record_ast3
             = custom_parser.parse_json_like_string(json_like_string);
     std::cout << "AST human readable output:" << json_record_ast3->print(true) << std::endl
+              << std::endl;
+
+    json_like_string
+            = "LogFuncArg(level=INFO,log={\\\"traceId\\\":\\\"u\\\",\\\"t\\\":\\\"s/r+qp+on/m/l/k/"
+              "j/i+h+gf+e+d/c/b+a/z+y+x+w/vu++t+s/r/q+p+o+n/m/lk/ji/h/gf+ed+c/b/"
+              "a\\\"})";
+
+    std::unique_ptr<JsonRecordAST> json_record_ast4
+            = custom_parser.parse_json_like_string(json_like_string);
+    std::cout << "AST human readable output:" << json_record_ast4->print(true) << std::endl
               << std::endl;
     return 0;
 }
