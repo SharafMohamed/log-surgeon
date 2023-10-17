@@ -90,11 +90,10 @@ public:
     }
 
     auto print(bool with_types = false) -> std::string {
-        std::string output = "\n";
+        std::string output{};
         for (auto const& object_ast : m_object_asts) {
             auto* object_ptr = dynamic_cast<JsonObjectAST*>(object_ast.get());
             output += object_ptr->print(with_types);
-            output += "\n";
         }
         output.pop_back();
         return output;
