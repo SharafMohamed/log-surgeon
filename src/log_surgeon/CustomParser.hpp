@@ -110,8 +110,8 @@ public:
     // Constructor
     CustomParser();
 
-    auto parse_json_like_string(std::string const& json_like_string)
-            -> std::unique_ptr<JsonRecordAST>;
+    auto parse_input(std::string const& json_like_string)
+            -> std::unique_ptr<ParserAST>;
 
 private:
     /**

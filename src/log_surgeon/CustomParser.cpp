@@ -137,8 +137,8 @@ CustomParser::CustomParser() {
     generate();
 }
 
-auto CustomParser::parse_json_like_string(std::string const& json_like_string)
-        -> std::unique_ptr<JsonRecordAST> {
+auto CustomParser::parse_input(std::string const& json_like_string)
+        -> std::unique_ptr<ParserAST> {
     Reader reader{[&](char* dst_buf, size_t count, size_t& read_to) -> ErrorCode {
         uint32_t unparsed_string_pos = 0;
         std::span<char> const buf{dst_buf, count};
@@ -164,10 +164,7 @@ auto CustomParser::parse_json_like_string(std::string const& json_like_string)
     m_bad_key_counter = 0;
     // TODO: for super long strings (10000+ tokens) parse can currently crash
     NonTerminal nonterminal = parse(reader);
-    std::unique_ptr<JsonRecordAST> json_record_ast(
-            dynamic_cast<JsonRecordAST*>(nonterminal.get_parser_ast().release())
-    );
-    return json_record_ast;
+    return std::move(nonterminal.get_parser_ast());
 }
 
 void CustomParser::add_lexical_rules() {
