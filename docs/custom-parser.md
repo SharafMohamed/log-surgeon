@@ -1,12 +1,12 @@
 # Custom Parser
 
-A custom parser specifies the variables, LALR1 grammar rules, and code fragments
-necessary for `log-surgeon` to parse an input and provide meaningful output.
-`log-surgeon` uses the variable rules to find and categorize tokens in the
-input. These grammar rules are then used to reduce the tokens to a single symbol
-(representing the desired language/interpretation). Each grammar rule has an
-associated code fragment specifying what code to execute when the grammar rule
-is used.
+A custom parser specifies the variable rules, LALR1 grammar rules, and code
+fragments necessary for `log-surgeon` to parse an input and provide meaningful
+output. `log-surgeon` uses the variable rules to find and categorize tokens in
+the input. These grammar rules are then used to reduce the tokens to a single
+symbol (representing the desired language/interpretation). Each grammar rule has
+an associated code fragment specifying what code to execute when the grammar
+rule is used.
 
 ## Variable rule syntax
 
