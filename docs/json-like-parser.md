@@ -50,6 +50,7 @@ auto ast = custom_parser.parse_input(json_like_string);
 auto* json_like_ast = static_cast<JsonRecordAST>(ast.get()); 
 ```
 
+<!--
 ```plantuml
 @startjson
 {
@@ -59,6 +60,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+-->
 
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=0&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
 
@@ -71,6 +73,7 @@ auto ast = custom_parser.parse_input(json_like_string);
 auto* json_like_ast = static_cast<JsonRecordAST>(ast.get()); 
 ```
 
+<!--
 ```plantuml
 @startjson
 {
@@ -80,6 +83,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+-->
 
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=1&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
 
@@ -92,6 +96,7 @@ auto ast = custom_parser.parse_input(json_like_string);
 auto* json_like_ast = static_cast<JsonRecordAST>(ast.get()); 
 ```
 
+<!--
 ```plantuml
 @startjson
 {
@@ -101,6 +106,8 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+-->
+
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=2&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
 
 
@@ -186,6 +193,7 @@ auto ast = custom_parser.parse_input(json_like_string);
 auto* json_like_ast = static_cast<JsonRecordAST>(ast.get()); 
 ```
 
+<!--
 ```plantuml
 @startjson
 {
@@ -203,6 +211,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+-->
 
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=3&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
 
@@ -214,6 +223,7 @@ auto ast = custom_parser.parse_input(json_like_string);
 auto* json_like_ast = static_cast<JsonRecordAST>(ast.get()); 
 ```
 
+<!--
 ```plantuml
 @startjson
 {
@@ -225,6 +235,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+-->
 
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=4&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
 
@@ -237,6 +248,7 @@ auto ast = custom_parser.parse_input(json_like_string);
 auto* json_like_ast = static_cast<JsonRecordAST>(ast.get()); 
 ```
 
+<!--
 ```plantuml
 @startjson
 {
@@ -248,6 +260,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+-->
 
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=5&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
 
@@ -302,6 +315,7 @@ auto ast = custom_parser.parse_input(json_like_string);
 auto* json_like_ast = static_cast<JsonRecordAST>(ast.get()); 
 ```
 
+<!--
 ```plantuml
 @startjson
 {
@@ -319,6 +333,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+-->
 
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=6&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
 
@@ -331,6 +346,7 @@ auto ast = custom_parser.parse_input(json_like_string);
 auto* json_like_ast = static_cast<JsonRecordAST>(ast.get()); 
 ```
 
+<!--
 ```plantuml
 @startjson
 {
@@ -344,6 +360,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+-->
 
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=7&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
 
