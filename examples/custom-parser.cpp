@@ -18,7 +18,7 @@ auto main() -> int {
               " a_random_key3=some_value, some_text3, empty=, a_random_key4=123asd, "
               "a_random_key4==false";
     auto ast1 = custom_parser.parse_input(json_like_string);
-    auto* json_record_ast1 = dynamic_cast<JsonRecordAST*>(ast1.get());
+    auto* json_record_ast1 = static_cast<JsonRecordAST*>(ast1.get());
     std::cout << "AST human readable output:" << json_record_ast1->print(true) << std::endl
               << std::endl;
 
@@ -28,7 +28,7 @@ auto main() -> int {
                        "fakeRespHeaders=FA_KE_ID=0:FAKE_LOCALE_ID=en_US:x-o-fake-id=0:FA_KER_ID=0, "
                        "equal==123, equalint=123=123, equalbool=true=false";
     auto ast2 = custom_parser.parse_input(json_like_string);
-    auto* json_record_ast2 = dynamic_cast<JsonRecordAST*>(ast2.get());
+    auto* json_record_ast2 = static_cast<JsonRecordAST*>(ast2.get());
     std::cout << "AST human readable output:" << json_record_ast2->print(true) << std::endl
               << std::endl;
 
@@ -38,7 +38,7 @@ auto main() -> int {
               "a\\\"}";
 
     auto ast3 = custom_parser.parse_input(json_like_string);
-    auto* json_record_ast3 = dynamic_cast<JsonRecordAST*>(ast3.get());
+    auto* json_record_ast3 = static_cast<JsonRecordAST*>(ast3.get());
     std::cout << "AST human readable output:" << json_record_ast3->print(true) << std::endl
               << std::endl;
 
@@ -47,7 +47,7 @@ auto main() -> int {
               "j/i+h+gf+e+d/c/b+a/z+y+x+w/vu++t+s/r/q+p+o+n/m/lk/ji/h/gf+ed+c/b/"
               "a\\\"})";
     auto ast4 = custom_parser.parse_input(json_like_string);
-    auto* json_record_ast4 = dynamic_cast<JsonRecordAST*>(ast4.get());
+    auto* json_record_ast4 = static_cast<JsonRecordAST*>(ast4.get());
     std::cout << "AST human readable output:" << json_record_ast4->print(true) << std::endl
               << std::endl;
     return 0;

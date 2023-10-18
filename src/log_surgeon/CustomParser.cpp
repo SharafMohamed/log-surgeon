@@ -168,20 +168,15 @@ auto CustomParser::parse_input(std::string const& json_like_string)
 }
 
 void CustomParser::add_lexical_rules() {
-    // add_token("Quotation", '"');
-    // add_token("Lbracket", '[');
-    // add_token("Rbracket", ']');
-    //add_token("Lparen", '(');
-    //add_token("Rparen", ')');
-    add_token("Lbrace", '{');
-    add_token("Rbrace", '}');
-    add_token("Comma", ',');
-    add_token("Equal", '=');
+    add_token("lBrace", '{');
+    add_token("rBrace", '}');
+    add_token("comma", ',');
+    add_token("equal", '=');
     auto digit = make_unique<RegexASTGroupByte>('0', '9');
     auto digit_plus = make_unique<RegexASTMultiplicationByte>(std::move(digit), 1, 0);
-    add_rule("IntegerToken", std::move(digit_plus));
-    add_token_chain("BooleanToken", "true");
-    add_token_chain("BooleanToken", "false");
+    add_rule("integer", std::move(digit_plus));
+    add_token_chain("boolean", "true");
+    add_token_chain("boolean", "false");
     // default constructs to a m_negate group
     unique_ptr<RegexASTGroupByte> string_character = make_unique<RegexASTGroupByte>();
     string_character->add_literal(',');
@@ -190,36 +185,36 @@ void CustomParser::add_lexical_rules() {
     string_character->add_literal('}');
     unique_ptr<RegexASTMultiplicationByte> string_character_plus
             = make_unique<RegexASTMultiplicationByte>(std::move(string_character), 1, 0);
-    add_rule("StringToken", std::move(string_character_plus));
+    add_rule("string", std::move(string_character_plus));
 }
 
 // " request and response, importance=high, this is some text, status=low, memory=10GB"
 void CustomParser::add_productions() {
     add_production(
             "JsonRecord",
-            {"JsonRecord", "Comma", "GoodJsonObject"},
+            {"JsonRecord", "comma", "GoodJsonObject"},
             existing_json_record_rule
     );
     add_production("JsonRecord", {"GoodJsonObject"}, new_json_record_rule);
     add_production(
             "JsonRecord",
-            {"JsonRecord", "Comma", "BadJsonObject"},
+            {"JsonRecord", "comma", "BadJsonObject"},
             existing_json_record_rule
     );
     add_production("JsonRecord", {"BadJsonObject"}, new_json_record_rule);
-    add_production("GoodJsonObject", {"GoodJsonObject", "Equal"}, char_json_object_rule);
+    add_production("GoodJsonObject", {"GoodJsonObject", "equal"}, char_json_object_rule);
     add_production("GoodJsonObject", {"GoodJsonObject", "Value"}, existing_json_object_rule);
-    add_production("GoodJsonObject", {"BadJsonObject", "Equal"}, new_good_json_object_rule);
+    add_production("GoodJsonObject", {"BadJsonObject", "equal"}, new_good_json_object_rule);
     add_production("BadJsonObject", {"BadJsonObject", "Value"}, existing_json_object_rule);
     add_production(
             "BadJsonObject",
             {"Value"},
             std::bind(&CustomParser::bad_json_object_rule, this, std::placeholders::_1)
     );
-    add_production("Value", {"StringToken"}, new_string_rule);
-    add_production("Value", {"Lbrace", "JsonRecord", "Rbrace"}, dictionary_rule);
-    add_production("Value", {"Lbrace", "Rbrace"}, empty_dictionary_rule);
-    add_production("Value", {"BooleanToken"}, boolean_rule);
-    add_production("Value", {"IntegerToken"}, integer_rule);
+    add_production("Value", {"string"}, new_string_rule);
+    add_production("Value", {"lBrace", "JsonRecord", "rBrace"}, dictionary_rule);
+    add_production("Value", {"lBrace", "rBrace"}, empty_dictionary_rule);
+    add_production("Value", {"boolean"}, boolean_rule);
+    add_production("Value", {"integer"}, integer_rule);
 }
 }  // namespace log_surgeon
