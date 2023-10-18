@@ -11,7 +11,7 @@ is used.
 ## Variable rule syntax
 
 Each variable *rule* has a *name* and a *pattern* (regular expression). For
-example, the following rules could be used when parsing json-like inputs:
+instance, the following rules can be used when parsing json-like inputs:
 
 ```
 lBrace:{
@@ -137,10 +137,9 @@ static auto existing_json_record_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     return std::move(r1);
 }
 ```
-Each code fragment takes as an argument a non-terminal representing the *head*
-of the associated grammar rule. This non-terminal contains a vector of
-matched symbols corresponding to the symbols in the *body* of the grammar
-rule.
+Each code fragment takes a non-terminal representing the head of the associated
+grammar rule as its argument. This non-terminal contains a vector of matched
+symbols corresponding to the symbols in the *body* of the grammar rule.
 
 The new_string_rule() code fragment is used when generating a Value symbol
 from a string symbol. The code fragment accesses the string symbol
@@ -156,11 +155,11 @@ respectively.
 
 Code fragments always return an updated symbol for the grammar rule's *head*.
 This is then either used by another code fragment or is the final symbol
-returned to the user via the parse() call.
+returned to the user via the parse_input() call.
 
 ## Example Usage
 Once the variable rules, grammar rules, and code fragments (along with any
-necessary objets needed by these fragments) are implemented for the desired
+necessary objects needed by these fragments) are implemented for the desired
 parser, the parser can be generated and used as follows:
 
 ```
