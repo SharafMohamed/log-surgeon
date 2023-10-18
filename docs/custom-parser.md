@@ -84,33 +84,35 @@ does not belong to the desired language.
 
 [CustomParser.cpp][1] has an example implementation of these grammar rules:
 
-```    
-add_production(
-        "JsonRecord",
-        {"JsonRecord", "comma", "GoodJsonObject"},
-        existing_json_record_rule
-);
-add_production("JsonRecord", {"GoodJsonObject"}, new_json_record_rule);
-add_production(
-        "JsonRecord",
-        {"JsonRecord", "comma", "BadJsonObject"},
-        existing_json_record_rule
-);
-add_production("JsonRecord", {"BadJsonObject"}, new_json_record_rule);
-add_production("GoodJsonObject", {"GoodJsonObject", "equal"}, char_json_object_rule);
-add_production("GoodJsonObject", {"GoodJsonObject", "Value"}, existing_json_object_rule);
-add_production("GoodJsonObject", {"BadJsonObject", "equal"}, new_good_json_object_rule);
-add_production("BadJsonObject", {"BadJsonObject", "Value"}, existing_json_object_rule);
-add_production(
-        "BadJsonObject",
-        {"Value"},
-        std::bind(&CustomParser::bad_json_object_rule, this, std::placeholders::_1)
-);
-add_production("Value", {"string"}, new_string_rule);
-add_production("Value", {"lBrace", "JsonRecord", "rBrace"}, dictionary_rule);
-add_production("Value", {"lBrace", "rBrace"}, empty_dictionary_rule);
-add_production("Value", {"boolean"}, boolean_rule);
-add_production("Value", {"integer"}, integer_rule);
+```
+void CustomParser::add_productions() {
+    add_production(
+            "JsonRecord",
+            {"JsonRecord", "comma", "GoodJsonObject"},
+            existing_json_record_rule
+    );
+    add_production("JsonRecord", {"GoodJsonObject"}, new_json_record_rule);
+    add_production(
+            "JsonRecord",
+            {"JsonRecord", "comma", "BadJsonObject"},
+            existing_json_record_rule
+    );
+    add_production("JsonRecord", {"BadJsonObject"}, new_json_record_rule);
+    add_production("GoodJsonObject", {"GoodJsonObject", "equal"}, char_json_object_rule);
+    add_production("GoodJsonObject", {"GoodJsonObject", "Value"}, existing_json_object_rule);
+    add_production("GoodJsonObject", {"BadJsonObject", "equal"}, new_good_json_object_rule);
+    add_production("BadJsonObject", {"BadJsonObject", "Value"}, existing_json_object_rule);
+    add_production(
+            "BadJsonObject",
+            {"Value"},
+            std::bind(&CustomParser::bad_json_object_rule, this, std::placeholders::_1)
+    );
+    add_production("Value", {"string"}, new_string_rule);
+    add_production("Value", {"lBrace", "JsonRecord", "rBrace"}, dictionary_rule);
+    add_production("Value", {"lBrace", "rBrace"}, empty_dictionary_rule);
+    add_production("Value", {"boolean"}, boolean_rule);
+    add_production("Value", {"integer"}, integer_rule);
+}
 ```
 
 ## Code fragments

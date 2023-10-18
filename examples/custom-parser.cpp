@@ -15,7 +15,7 @@ auto main() -> int {
 
     std::string json_like_string
             = " empty=, empty_dict={}, some_text1, a_random_key1=10, a_random_key2=true, some_text2,"
-              " a_random_key3=some_value, some_text3, empty=, a_random_key4=123asd, "
+              " a_random_key3=some_value, some_text3, empty=, a_random_key4=123abc, "
               "a_random_key4==false";
     auto ast1 = custom_parser.parse_input(json_like_string);
     auto* json_record_ast1 = static_cast<JsonRecordAST*>(ast1.get());
