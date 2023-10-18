@@ -356,6 +356,7 @@ auto ast = custom_parser.parse_input(json_like_string);
 auto* json_like_ast = static_cast<JsonRecordAST>(ast.get()); 
 ```
 
+<div hidden>
 ```plantuml
 @startjson
 {
@@ -366,6 +367,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+</div>
 
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=8&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
 
