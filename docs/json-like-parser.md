@@ -101,6 +101,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=2&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
 
 
 ## 2. Simple Parser
@@ -203,6 +204,8 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 @endjson
 ```
 
+![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=3&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
+
 ```
 std::string json_like_string
         = "level=INFO,log={"traceId":"id123","cmprsd":"hash"}"
@@ -223,6 +226,9 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 @endjson
 ```
 
+![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=4&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
+
+
 ```
 std::string json_like_string
         = "LogFuncArg(level=INFO,log={"traceId":"id123","cmprsd":"hash"})"
@@ -242,6 +248,8 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+
+![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=5&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
 
 ## 3. Advanced Parser
 
@@ -312,6 +320,9 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 @endjson
 ```
 
+![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=6&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
+
+
 ```
 std::string json_like_string
         = "level=INFO,log={"traceId":"id123","cmprsd":"hash"}"
@@ -334,6 +345,9 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 @endjson
 ```
 
+![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=7&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
+
+
 ```
 std::string json_like_string
         = "LogFuncArg(level=INFO,log={"traceId":"id123","cmprsd":"hash"})"
@@ -352,6 +366,9 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+
+![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=8&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/json-like-parser.md)
+
 
 ### D. Potential Issues
 
