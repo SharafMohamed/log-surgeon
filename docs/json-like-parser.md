@@ -401,7 +401,16 @@ std::runtime_error similar to what is shown below.
 File:1:9: error: expected '{','}','integer','boolean','string','JsonRecord','GoodJsonObject', 'BadJsonObject','Value' before ',' token
            empty={, empty_dict={}, no_key, int_key=10, bool_key=true, 99, string_key=some_text, equal_string==false=123, complex_string=false123
                   ^
-``` 
+```
+The simple parser, on the other hand, does not handle dictionaries and treats
+braces as part of a string token. Therefore, it will parse key names and string
+values that contain braces.
+
+If desired by the user, modifying the set of grammar rules can achieve a
+combination of these two parsers (both parsing dictionaries and allowing braces
+in keys/strings). Essentially, what matters is that the variable/grammar rules
+correctly reflect the user's desired parsing language and the code fragments
+produce the user's desired behavior.
 
 [CustomParser.cpp][1]:
 
