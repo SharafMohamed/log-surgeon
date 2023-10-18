@@ -5,3 +5,11 @@
   }
 }
 @endjson
+
+@startjson
+{
+  "JsonRecordAST": {
+    "key1<string>" : "level=INFO,log={\"traceId\":\"id123\",\"cmprsd\":\"hash\"}"
+  }
+}
+@endjson

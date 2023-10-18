@@ -50,21 +50,7 @@ auto ast = custom_parser.parse_input(json_like_string);
 auto* json_like_ast = static_cast<JsonRecordAST>(ast.get()); 
 ```
 
-<div hidden>
-```plantuml
-@startjson
-{
-  "JsonRecordAST": {
-    "key1<string>" : " empty=, empty_dict={}, ..., complex_string=false123"
-  }
-}
-@endjson
-```
-</div>
-
-![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=0&src=https://github.com/SharafMohamed/log-surgeon/blob/parser/docs/plantuml/code.txt)
-
-![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=1&src=https://github.com/SharafMohamed/log-surgeon/blob/parser/docs/json-like-parser.md)
+![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=0&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/plantuml/code.txt)
 
 ```
 
@@ -84,6 +70,9 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 }
 @endjson
 ```
+
+![](http://www.plantuml.com/plantuml/proxy?cache=no&idx=1&src=https://raw.githubusercontent.com/SharafMohamed/log-surgeon/parser/docs/plantuml/code.txt)
+
 
 ```
 std::string json_like_string
