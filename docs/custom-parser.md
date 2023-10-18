@@ -14,8 +14,8 @@ Each variable *rule* has a *name* and a *pattern* (regular expression). For
 example, the following rules could be used when parsing json-like inputs:
 
 ```
-lbrace:{
-rbrace:}
+lBrace:{
+rBrace:}
 comma:,
 equal:=
 integer:[0-9]+
@@ -27,10 +27,10 @@ string:[^{},=]+
 
 ```
 void CustomParser::add_lexical_rules() {
-    add_token("Lbrace", '{');
-    add_token("Rbrace", '}');
-    add_token("Comma", ',');
-    add_token("Equal", '=');
+    add_token("lBrace", '{');
+    add_token("rBrace", '}');
+    add_token("comma", ',');
+    add_token("equal", '=');
     auto digit = make_unique<RegexASTGroupByte>('0', '9');
     auto digit_plus = make_unique<RegexASTMultiplicationByte>(std::move(digit), 1, 0);
     add_rule("integer", std::move(digit_plus));
@@ -87,19 +87,19 @@ does not belong to the desired language.
 ```    
 add_production(
         "JsonRecord",
-        {"JsonRecord", "Comma", "GoodJsonObject"},
+        {"JsonRecord", "comma", "GoodJsonObject"},
         existing_json_record_rule
 );
 add_production("JsonRecord", {"GoodJsonObject"}, new_json_record_rule);
 add_production(
         "JsonRecord",
-        {"JsonRecord", "Comma", "BadJsonObject"},
+        {"JsonRecord", "comma", "BadJsonObject"},
         existing_json_record_rule
 );
 add_production("JsonRecord", {"BadJsonObject"}, new_json_record_rule);
-add_production("GoodJsonObject", {"GoodJsonObject", "Equal"}, char_json_object_rule);
+add_production("GoodJsonObject", {"GoodJsonObject", "equal"}, char_json_object_rule);
 add_production("GoodJsonObject", {"GoodJsonObject", "Value"}, existing_json_object_rule);
-add_production("GoodJsonObject", {"BadJsonObject", "Equal"}, new_good_json_object_rule);
+add_production("GoodJsonObject", {"BadJsonObject", "equal"}, new_good_json_object_rule);
 add_production("BadJsonObject", {"BadJsonObject", "Value"}, existing_json_object_rule);
 add_production(
         "BadJsonObject",
@@ -107,8 +107,8 @@ add_production(
         std::bind(&CustomParser::bad_json_object_rule, this, std::placeholders::_1)
 );
 add_production("Value", {"string"}, new_string_rule);
-add_production("Value", {"Lbrace", "JsonRecord", "Rbrace"}, dictionary_rule);
-add_production("Value", {"Lbrace", "Rbrace"}, empty_dictionary_rule);
+add_production("Value", {"lBrace", "JsonRecord", "rBrace"}, dictionary_rule);
+add_production("Value", {"lBrace", "rBrace"}, empty_dictionary_rule);
 add_production("Value", {"boolean"}, boolean_rule);
 add_production("Value", {"integer"}, integer_rule);
 ```
