@@ -55,7 +55,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 @startjson
 {
     "JsonRecordAST": {
-        "key1<string>" : " empty=, empty_dict={}, ..., complex_string=false123"
+        "\"key1\"<string>" : " empty=, empty_dict={}, ..., complex_string=false123"
     }
 }
 @endjson
@@ -78,7 +78,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 @startjson
 {
   "JsonRecordAST": {
-    "key1<string>" : "level=INFO,log={\"traceId\":\"id123\",\"cmprsd\":\"hash\"}"
+    "\"key1\"<string>" : "level=INFO,log={\"traceId\":\"id123\",\"cmprsd\":\"hash\"}"
   }
 }
 @endjson
@@ -101,7 +101,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 @startjson
 {
   "JsonRecordAST": {
-    "key1<string>" : "LogFuncArg(level=INFO,log={\"traceId\":\"id123\",\"cmprsd\":\"hash\"})"
+    "\"key1\"<string>" : "LogFuncArg(level=INFO,log={\"traceId\":\"id123\",\"cmprsd\":\"hash\"})"
   }
 }
 @endjson
@@ -352,7 +352,7 @@ auto* json_like_ast = static_cast<JsonRecordAST>(ast.get());
 {
   "JsonRecordAST": {
     "\"level\"<string>" : "\"INFO\"",
-    "log<dictionary>" : {
+    "\"log\"<dictionary>" : {
       "\"key1\"<string>" : "\"traceId\":\"id123\"", 
       "\"key2\"<string>" : "\"cmprsd\":\"hash\"\""
     }
