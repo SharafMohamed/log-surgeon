@@ -1,7 +1,7 @@
-@startuml
+@startjson
 {
   "JsonRecordAST": {
     "key1<string>" : " empty=, empty_dict={}, ..., complex_string=false123"
   }
 }
-@enduml
+@endjson
