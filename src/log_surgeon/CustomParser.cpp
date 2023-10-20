@@ -71,7 +71,6 @@ static auto integer_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     return make_unique<JsonValueAST>(r1, JsonValueType::Integer);
 }
 
-/*
 static auto dictionary_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
     return make_unique<JsonValueAST>(std::move(r2));
@@ -80,7 +79,6 @@ static auto dictionary_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
 static auto empty_dictionary_rule(NonTerminal*) -> unique_ptr<ParserAST> {
     return make_unique<JsonValueAST>(nullptr);
 }
-*/
 
 auto CustomParser::bad_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
@@ -170,8 +168,8 @@ auto CustomParser::parse_input(std::string const& json_like_string)
 }
 
 void CustomParser::add_lexical_rules() {
-    //add_token("lBrace", '{');
-    //add_token("rBrace", '}');
+    add_token("lBrace", '{');
+    add_token("rBrace", '}');
     add_token("comma", ',');
     add_token("equal", '=');
     auto digit = make_unique<RegexASTGroupByte>('0', '9');
@@ -183,8 +181,8 @@ void CustomParser::add_lexical_rules() {
     unique_ptr<RegexASTGroupByte> string_character = make_unique<RegexASTGroupByte>();
     string_character->add_literal(',');
     string_character->add_literal('=');
-    //string_character->add_literal('{');
-    //string_character->add_literal('}');
+    string_character->add_literal('{');
+    string_character->add_literal('}');
     unique_ptr<RegexASTMultiplicationByte> string_character_plus
             = make_unique<RegexASTMultiplicationByte>(std::move(string_character), 1, 0);
     add_rule("string", std::move(string_character_plus));
@@ -214,8 +212,8 @@ void CustomParser::add_productions() {
             std::bind(&CustomParser::bad_json_object_rule, this, std::placeholders::_1)
     );
     add_production("Value", {"string"}, new_string_rule);
-    //add_production("Value", {"lBrace", "JsonRecord", "rBrace"}, dictionary_rule);
-    //add_production("Value", {"lBrace", "rBrace"}, empty_dictionary_rule);
+    add_production("Value", {"lBrace", "JsonRecord", "rBrace"}, dictionary_rule);
+    add_production("Value", {"lBrace", "rBrace"}, empty_dictionary_rule);
     add_production("Value", {"boolean"}, boolean_rule);
     add_production("Value", {"integer"}, integer_rule);
 }
