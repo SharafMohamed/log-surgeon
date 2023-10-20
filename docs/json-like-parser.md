@@ -137,7 +137,7 @@ Value --> string
 ```
 
 ### B. Code implementation
-The code fragments can be found in [CustomParser.cpp][1]
+The code fragments can be found in [CustomParser.cpp][1]. Only the variable and grammar rules are given below:
 ```
 void CustomParser::add_lexical_rules() {
     add_token("comma", ',');
