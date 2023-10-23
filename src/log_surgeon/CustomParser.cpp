@@ -50,7 +50,7 @@ auto JsonValueAST::print(bool with_types) -> std::string {
             auto* json_record_ast = dynamic_cast<JsonRecordAST*>(m_dictionary_json_record.get());
             output += json_record_ast->print(false);
         }
-        output += "\"" + m_value + "\"";
+        output += m_value;
     } else {
         output += m_value;
     }
