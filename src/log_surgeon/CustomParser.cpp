@@ -14,6 +14,8 @@
 
 using RegexASTGroupByte = log_surgeon::finite_automata::RegexASTGroup<
         log_surgeon::finite_automata::RegexNFAByteState>;
+using RegexASTLiteralByte = log_surgeon::finite_automata::RegexASTLiteral<
+        log_surgeon::finite_automata::RegexNFAByteState>;
 using RegexASTMultiplicationByte = log_surgeon::finite_automata::RegexASTMultiplication<
         log_surgeon::finite_automata::RegexNFAByteState>;
 
@@ -40,13 +42,13 @@ auto JsonValueAST::print(bool with_types) -> std::string {
         output += ">";
     }
     if (m_type == JsonValueType::Dictionary) {
-        if(m_dictionary_json_record != nullptr) {
+        if (m_dictionary_json_record != nullptr) {
             auto* json_record_ast = dynamic_cast<JsonRecordAST*>(m_dictionary_json_record.get());
             output += json_record_ast->print(false);
         }
     } else if (m_type == JsonValueType::String) {
         // TODO: this is a hacky fix for now to deal with dictionaries turned into strings
-        if(m_dictionary_json_record != nullptr) {
+        if (m_dictionary_json_record != nullptr) {
             auto* json_record_ast = dynamic_cast<JsonRecordAST*>(m_dictionary_json_record.get());
             output += json_record_ast->print(false);
         }
@@ -61,6 +63,10 @@ static auto boolean_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     return make_unique<JsonValueAST>(m->token_cast(0)->to_string(), JsonValueType::Boolean);
 }
 
+static auto empty_string_rule(NonTerminal*) -> unique_ptr<ParserAST> {
+    return make_unique<JsonValueAST>("", JsonValueType::String);
+}
+
 static auto new_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     string r1 = m->token_cast(0)->to_string();
     return make_unique<JsonValueAST>(r1, JsonValueType::String);
@@ -71,21 +77,30 @@ static auto integer_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     return make_unique<JsonValueAST>(r1, JsonValueType::Integer);
 }
 
-static auto dictionary_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+static auto dict_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
+    auto* r2_ptr = dynamic_cast<JsonRecordAST*>(r2.get());
+    unique_ptr<ParserAST>& r3 = m->non_terminal_cast(2)->get_parser_ast();
+    r2_ptr->add_object_ast(r3);
     return make_unique<JsonValueAST>(std::move(r2));
+}
+
+static auto dict_record_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+    unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
+    auto recordAST = make_unique<JsonRecordAST>(r2);
+    return make_unique<JsonValueAST>(std::move(recordAST));
 }
 
 static auto empty_dictionary_rule(NonTerminal*) -> unique_ptr<ParserAST> {
     return make_unique<JsonValueAST>(nullptr);
 }
 
-auto CustomParser::bad_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
-    unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
-    return make_unique<JsonObjectAST>(m_bad_key_counter, r1);
+auto CustomParser::bad_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+    unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
+    return make_unique<JsonObjectAST>(m_bad_key_counter, r2);
 }
 
-static auto new_good_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+static auto new_good_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     auto* r1_ptr = dynamic_cast<JsonObjectAST*>(r1.get());
     auto* value_ast = dynamic_cast<JsonValueAST*>(r1_ptr->m_value_ast.get());
@@ -93,41 +108,52 @@ static auto new_good_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     return make_unique<JsonObjectAST>(value_ast->m_value, empty_value);
 }
 
-static auto existing_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+static auto existing_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+    unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
+    auto* r1_ptr = dynamic_cast<JsonObjectAST*>(r1.get());
+    auto* value_ast = dynamic_cast<JsonValueAST*>(r1_ptr->m_value_ast.get());
+    unique_ptr<ParserAST>& r3 = m->non_terminal_cast(2)->get_parser_ast();
+    auto* r3_ptr = dynamic_cast<JsonValueAST*>(r3.get());
+    if (value_ast->m_value.empty() && value_ast->m_type == JsonValueType::String) {
+        r1_ptr->m_value_ast = std::move(r3);
+    } else {
+        unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
+        auto* r2_ptr = dynamic_cast<JsonValueAST*>(r2.get());
+        value_ast->add_string(r2_ptr->get_value());
+        value_ast->change_type(JsonValueType::String);
+        value_ast->add_string(r3_ptr->get_value());
+    }
+    return std::move(r1);
+}
+
+static auto char_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     auto* r1_ptr = dynamic_cast<JsonObjectAST*>(r1.get());
     auto* value_ast = dynamic_cast<JsonValueAST*>(r1_ptr->m_value_ast.get());
     unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
     auto* r2_ptr = dynamic_cast<JsonValueAST*>(r2.get());
-    if (value_ast->m_value.empty() && value_ast->m_type == JsonValueType::String) {
-        r1_ptr->m_value_ast = std::move(r2);
-    } else {
-        value_ast->change_type(JsonValueType::String);
-        value_ast->add_string(r2_ptr->get_value());
-    }
-    return std::move(r1);
-}
-
-static auto char_json_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
-    unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
-    auto* r1_ptr = dynamic_cast<JsonObjectAST*>(r1.get());
-    auto* value_ast = dynamic_cast<JsonValueAST*>(r1_ptr->m_value_ast.get());
-    string r2 = m->token_cast(1)->to_string();
+    value_ast->add_string(r2_ptr->get_value());
+    string r3 = m->token_cast(2)->to_string();
     value_ast->change_type(JsonValueType::String);
-    value_ast->add_string(r2);
+    value_ast->add_string(r3);
     return std::move(r1);
 }
 
-static auto new_json_record_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+static auto identity_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+    unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
+    return std::move(r1);
+}
+
+static auto new_record_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     return make_unique<JsonRecordAST>(r1);
 }
 
-static auto existing_json_record_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+static auto existing_record_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     auto* r1_ptr = dynamic_cast<JsonRecordAST*>(r1.get());
-    unique_ptr<ParserAST>& r3 = m->non_terminal_cast(2)->get_parser_ast();
-    r1_ptr->add_object_ast(r3);
+    unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
+    r1_ptr->add_object_ast(r2);
     return std::move(r1);
 }
 
@@ -137,8 +163,7 @@ CustomParser::CustomParser() {
     generate();
 }
 
-auto CustomParser::parse_input(std::string const& json_like_string)
-        -> std::unique_ptr<ParserAST> {
+auto CustomParser::parse_input(std::string const& json_like_string) -> std::unique_ptr<ParserAST> {
     Reader reader{[&](char* dst_buf, size_t count, size_t& read_to) -> ErrorCode {
         uint32_t unparsed_string_pos = 0;
         std::span<char> const buf{dst_buf, count};
@@ -168,6 +193,10 @@ auto CustomParser::parse_input(std::string const& json_like_string)
 }
 
 void CustomParser::add_lexical_rules() {
+    add_rule(
+            "spacePlus",
+            make_unique<RegexASTMultiplicationByte>(make_unique<RegexASTLiteralByte>(' '), 1, 0)
+    );
     add_token("lBrace", '{');
     add_token("rBrace", '}');
     add_token("comma", ',');
@@ -179,6 +208,7 @@ void CustomParser::add_lexical_rules() {
     add_token_chain("boolean", "false");
     // default constructs to a m_negate group
     unique_ptr<RegexASTGroupByte> string_character = make_unique<RegexASTGroupByte>();
+    string_character->add_literal(' ');
     string_character->add_literal(',');
     string_character->add_literal('=');
     string_character->add_literal('{');
@@ -190,31 +220,31 @@ void CustomParser::add_lexical_rules() {
 
 // " request and response, importance=high, this is some text, status=low, memory=10GB"
 void CustomParser::add_productions() {
+    add_production("Record", {"Record", "FinishedObject"}, existing_record_rule);
+    add_production("Record", {"FinishedObject"}, new_record_rule);
+    add_production("FinishedObject", {"GoodObject", "SpaceStar", "comma"}, identity_rule);
+    add_production("FinishedObject", {"BadObject", "SpaceStar", "comma"}, identity_rule);
+    add_production("FinishedObject", {"GoodObject", "SpaceStar", "$end"}, identity_rule);
+    add_production("FinishedObject", {"BadObject", "SpaceStar", "$end"}, identity_rule);
+    add_production("FinishedBraceObject", {"GoodObject", "SpaceStar", "rBrace"}, identity_rule);
+    add_production("FinishedBraceObject", {"BadObject", "SpaceStar", "rBrace"}, identity_rule);
+    add_production("GoodObject", {"GoodObject", "SpaceStar", "Value"}, existing_object_rule);
+    add_production("GoodObject", {"GoodObject", "SpaceStar", "equal"}, char_object_rule);
+    add_production("GoodObject", {"GoodObject", "SpaceStar", "Value"}, existing_object_rule);
+    add_production("GoodObject", {"BadObject", "SpaceStar", "equal"}, new_good_object_rule);
+    add_production("BadObject", {"BadObject", "SpaceStar", "Value"}, existing_object_rule);
     add_production(
-            "JsonRecord",
-            {"JsonRecord", "comma", "GoodJsonObject"},
-            existing_json_record_rule
-    );
-    add_production("JsonRecord", {"GoodJsonObject"}, new_json_record_rule);
-    add_production(
-            "JsonRecord",
-            {"JsonRecord", "comma", "BadJsonObject"},
-            existing_json_record_rule
-    );
-    add_production("JsonRecord", {"BadJsonObject"}, new_json_record_rule);
-    add_production("GoodJsonObject", {"GoodJsonObject", "equal"}, char_json_object_rule);
-    add_production("GoodJsonObject", {"GoodJsonObject", "Value"}, existing_json_object_rule);
-    add_production("GoodJsonObject", {"BadJsonObject", "equal"}, new_good_json_object_rule);
-    add_production("BadJsonObject", {"BadJsonObject", "Value"}, existing_json_object_rule);
-    add_production(
-            "BadJsonObject",
-            {"Value"},
-            std::bind(&CustomParser::bad_json_object_rule, this, std::placeholders::_1)
+            "BadObject",
+            {"SpaceStar", "Value"},
+            std::bind(&CustomParser::bad_object_rule, this, std::placeholders::_1)
     );
     add_production("Value", {"string"}, new_string_rule);
-    add_production("Value", {"lBrace", "JsonRecord", "rBrace"}, dictionary_rule);
-    add_production("Value", {"lBrace", "rBrace"}, empty_dictionary_rule);
+    add_production("Value", {"lBrace", "Record", "FinishedBraceObject"}, dict_object_rule);
+    add_production("Value", {"lBrace", "FinishedBraceObject"}, dict_record_rule);
+    add_production("Value", {"lBrace", "SpaceStar", "rBrace"}, empty_dictionary_rule);
     add_production("Value", {"boolean"}, boolean_rule);
     add_production("Value", {"integer"}, integer_rule);
+    add_production("SpaceStar", {"spacePlus"}, new_string_rule);
+    add_production("SpaceStar", {}, empty_string_rule);
 }
 }  // namespace log_surgeon

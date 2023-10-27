@@ -40,7 +40,7 @@ public:
     // Constructor
     JsonValueAST(std::string const& value, JsonValueType type);
 
-    JsonValueAST(std::unique_ptr<ParserAST> json_object_ast);
+    JsonValueAST(std::unique_ptr<ParserAST> json_record_ast);
 
     auto add_character(char character) -> void { m_value.push_back(character); }
 
@@ -129,7 +129,7 @@ private:
      * @param m
      * @return std::unique_ptr<ParserAST>
      */
-    auto bad_json_object_rule(NonTerminal* m) -> std::unique_ptr<ParserAST>;
+    auto bad_object_rule(NonTerminal* m) -> std::unique_ptr<ParserAST>;
 
     uint32_t m_bad_key_counter{0};
 };
