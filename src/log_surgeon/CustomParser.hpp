@@ -50,11 +50,7 @@ public:
     auto change_type(JsonValueType type) -> void { m_type = type; }
 
     [[nodiscard]] auto to_string_view() -> std::string_view {
-        if (m_view_buffer) {
-            return {m_view_buffer + m_view_start_pos, m_view_end_pos - m_view_start_pos};
-        } else {
-            return {""};
-        }
+        return {m_view_buffer + m_view_start_pos, m_view_end_pos - m_view_start_pos};
     }
 
     auto print(bool with_types) -> std::string;
