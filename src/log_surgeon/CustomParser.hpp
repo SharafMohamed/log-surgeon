@@ -1,6 +1,8 @@
 #ifndef LOG_SURGEON_CUSTOM_PARSER_HPP
 #define LOG_SURGEON_CUSTOM_PARSER_HPP
 
+//TODO: this should all be in CLJ except for the generalizable functionality
+
 #include <utility>
 
 #include <log_surgeon/LALR1Parser.hpp>

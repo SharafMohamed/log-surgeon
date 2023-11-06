@@ -1,6 +1,5 @@
 #include "CustomParser.hpp"
 
-#include <cmath>
 #include <memory>
 #include <span>
 #include <stdexcept>
@@ -9,8 +8,7 @@
 #include <log_surgeon/FileReader.hpp>
 #include <log_surgeon/finite_automata/RegexAST.hpp>
 #include <log_surgeon/LALR1Parser.hpp>
-#include <log_surgeon/Lexer.hpp>
-#include <log_surgeon/utils.hpp>
+#include <log_surgeon/Schema.hpp>
 
 using RegexASTGroupByte = log_surgeon::finite_automata::RegexASTGroup<
         log_surgeon::finite_automata::RegexNFAByteState>;
@@ -216,54 +214,19 @@ auto CustomParser::parse_input(std::string const& json_like_string) -> std::uniq
 }
 
 void CustomParser::add_lexical_rules() {
-    add_rule(
-            "spacePlus",
-            make_unique<RegexASTMultiplicationByte>(make_unique<RegexASTLiteralByte>(' '), 1, 0)
-    );
-    add_token("lBrace", '{');
-    add_token("rBrace", '}');
-    add_token("comma", ',');
-    add_token("equal", '=');
-    auto digit = make_unique<RegexASTGroupByte>('0', '9');
-    auto digit_plus = make_unique<RegexASTMultiplicationByte>(std::move(digit), 1, 0);
-    add_rule("integer", std::move(digit_plus));
-    add_token_chain("boolean", "true");
-    add_token_chain("boolean", "false");
-    // default constructs to a m_negate group
-    auto single_char = make_unique<RegexASTGroupByte>();
-    single_char->add_literal(',');
-    single_char->add_literal('=');
-    single_char->add_literal(' ');
-    single_char->add_literal('{');
-    single_char->add_literal('}');
-    auto string_infix = make_unique<RegexASTGroupByte>();
-    string_infix->add_literal(',');
-    string_infix->add_literal('=');
-    auto string_prefix = make_unique<RegexASTGroupByte>();
-    string_prefix->add_literal(',');
-    string_prefix->add_literal('=');
-    string_prefix->add_literal(' ');
-    string_prefix->add_literal('{');
-    string_prefix->add_literal('}');
-    auto string_suffix = make_unique<RegexASTGroupByte>();
-    string_suffix->add_literal(',');
-    string_suffix->add_literal('=');
-    string_suffix->add_literal(' ');
-    string_suffix->add_literal('{');
-    string_suffix->add_literal('}');
-    auto string_character_plus
-            = make_unique<RegexASTMultiplicationByte>(std::move(string_infix), 1, 0);
-    auto multi_char_string_prefix = make_unique<RegexASTCatByte>(
-            std::move(string_prefix),
-            std::move(string_character_plus)
-    );
-    auto multi_char_string = make_unique<RegexASTCatByte>(
-            std::move(multi_char_string_prefix),
-            std::move(string_suffix)
-    );
-    auto any_string
-            = make_unique<RegexASTOrByte>(std::move(single_char), std::move(multi_char_string));
-    add_rule("string", std::move(any_string));
+    Schema schema;
+    schema.add_variable("spacePlus", " +", -1);
+    schema.add_variable("lBrace", "\\{", -1);
+    schema.add_variable("rBrace", "\\}", -1);
+    schema.add_variable("comma", ",", -1);
+    schema.add_variable("equal", "=", -1);
+    schema.add_variable("integer", "[0-9]+", -1);
+    schema.add_variable("boolean", "true|false", -1);
+    schema.add_variable("string", R"(([^ \{\},=])|([^ \{\},=][^,=]*[^ \{\},=]))", -1);
+    for (auto const& parser_ast : schema.get_schema_ast_ptr()->m_schema_vars) {
+        auto* schema_var_ast = dynamic_cast<SchemaVarAST*>(parser_ast.get());
+        add_rule(schema_var_ast->m_name, std::move(schema_var_ast->m_regex_ptr));
+    }
 }
 
 // " request and response, importance=high, this is some text, status=low, memory=10GB"
