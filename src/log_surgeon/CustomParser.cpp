@@ -18,7 +18,8 @@ using RegexASTLiteralByte = log_surgeon::finite_automata::RegexASTLiteral<
         log_surgeon::finite_automata::RegexNFAByteState>;
 using RegexASTMultiplicationByte = log_surgeon::finite_automata::RegexASTMultiplication<
         log_surgeon::finite_automata::RegexNFAByteState>;
-
+using RegexASTCatByte = log_surgeon::finite_automata::RegexASTCat<
+        log_surgeon::finite_automata::RegexNFAByteState>;
 using std::make_unique;
 using std::string;
 using std::unique_ptr;
@@ -207,15 +208,34 @@ void CustomParser::add_lexical_rules() {
     add_token_chain("boolean", "true");
     add_token_chain("boolean", "false");
     // default constructs to a m_negate group
-    unique_ptr<RegexASTGroupByte> string_character = make_unique<RegexASTGroupByte>();
-    string_character->add_literal(' ');
+    auto string_character = make_unique<RegexASTGroupByte>();
     string_character->add_literal(',');
     string_character->add_literal('=');
     string_character->add_literal('{');
     string_character->add_literal('}');
-    unique_ptr<RegexASTMultiplicationByte> string_character_plus
+    auto string_without_space_character_prefix = make_unique<RegexASTGroupByte>();
+    string_without_space_character_prefix->add_literal(',');
+    string_without_space_character_prefix->add_literal('=');
+    string_without_space_character_prefix->add_literal(' ');
+    string_without_space_character_prefix->add_literal('{');
+    string_without_space_character_prefix->add_literal('}');
+    auto string_without_space_character_suffix = make_unique<RegexASTGroupByte>();
+    string_without_space_character_suffix->add_literal(',');
+    string_without_space_character_suffix->add_literal('=');
+    string_without_space_character_suffix->add_literal(' ');
+    string_without_space_character_suffix->add_literal('{');
+    string_without_space_character_suffix->add_literal('}');
+    auto string_character_plus
             = make_unique<RegexASTMultiplicationByte>(std::move(string_character), 1, 0);
-    add_rule("string", std::move(string_character_plus));
+    auto string_with_space_character_plus_prefix = make_unique<RegexASTCatByte>(
+            std::move(string_without_space_character_prefix),
+            std::move(string_character_plus)
+    );
+    auto string_with_space_character_plus = make_unique<RegexASTCatByte>(
+            std::move(string_with_space_character_plus_prefix),
+            std::move(string_without_space_character_suffix)
+    );
+    add_rule("string", std::move(string_with_space_character_plus));
 }
 
 // " request and response, importance=high, this is some text, status=low, memory=10GB"
@@ -223,26 +243,39 @@ void CustomParser::add_productions() {
     add_production("Record", {"Record", "FinishedObject"}, existing_record_rule);
     add_production("Record", {"FinishedObject"}, new_record_rule);
     add_production("FinishedObject", {"GoodObject", "SpaceStar", "comma"}, identity_rule);
+    add_production("FinishedObject", {"NewGoodObject", "SpaceStar", "comma"}, identity_rule);
     add_production("FinishedObject", {"BadObject", "SpaceStar", "comma"}, identity_rule);
+    add_production(
+            "FinishedObject",
+            {"NewGoodObject", "SpaceStar", "Dictionary", "SpaceStar", "comma"},
+            identity_rule
+    );
     add_production("FinishedObject", {"GoodObject", "SpaceStar", "$end"}, identity_rule);
+    add_production("FinishedObject", {"NewGoodObject", "SpaceStar", "$end"}, identity_rule);
     add_production("FinishedObject", {"BadObject", "SpaceStar", "$end"}, identity_rule);
-    add_production("FinishedBraceObject", {"GoodObject", "SpaceStar", "rBrace"}, identity_rule);
-    add_production("FinishedBraceObject", {"BadObject", "SpaceStar", "rBrace"}, identity_rule);
-    add_production("GoodObject", {"GoodObject", "SpaceStar", "Value"}, existing_object_rule);
+    add_production(
+            "FinishedObject",
+            {"NewGoodObject", "SpaceStar", "Dictionary", "SpaceStar", "$end"},
+            identity_rule
+    );
     add_production("GoodObject", {"GoodObject", "SpaceStar", "equal"}, char_object_rule);
     add_production("GoodObject", {"GoodObject", "SpaceStar", "Value"}, existing_object_rule);
-    add_production("GoodObject", {"BadObject", "SpaceStar", "equal"}, new_good_object_rule);
-    add_production("BadObject", {"BadObject", "SpaceStar", "Value"}, existing_object_rule);
+    add_production("GoodObject", {"NewGoodObject", "SpaceStar", "equal"}, char_object_rule);
+    add_production("GoodObject", {"NewGoodObject", "SpaceStar", "Value"}, existing_object_rule);
+    add_production("NewGoodObject", {"BadObject", "SpaceStar", "equal"}, new_good_object_rule);
     add_production(
             "BadObject",
             {"SpaceStar", "Value"},
             std::bind(&CustomParser::bad_object_rule, this, std::placeholders::_1)
     );
     add_production("Value", {"string"}, new_string_rule);
-    add_production("Value", {"lBrace", "Record", "FinishedBraceObject"}, dict_object_rule);
-    add_production("Value", {"lBrace", "FinishedBraceObject"}, dict_record_rule);
-    add_production("Value", {"lBrace", "SpaceStar", "rBrace"}, empty_dictionary_rule);
+    add_production("Dictionary", {"lBrace", "Record", "FinishedBraceObject"}, dict_object_rule);
+    add_production("Dictionary", {"lBrace", "FinishedBraceObject"}, dict_record_rule);
+    add_production("Dictionary", {"lBrace", "SpaceStar", "rBrace"}, empty_dictionary_rule);
+    add_production("FinishedBraceObject", {"GoodObject", "SpaceStar", "rBrace"}, identity_rule);
+    add_production("FinishedBraceObject", {"BadObject", "SpaceStar", "rBrace"}, identity_rule);
     add_production("Value", {"boolean"}, boolean_rule);
+    add_production("Value", {"integer"}, integer_rule);
     add_production("Value", {"integer"}, integer_rule);
     add_production("SpaceStar", {"spacePlus"}, new_string_rule);
     add_production("SpaceStar", {}, empty_string_rule);

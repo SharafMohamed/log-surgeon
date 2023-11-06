@@ -41,6 +41,7 @@ auto main() -> int {
     std::cout << "AST human readable output:" << json_record_ast3->print(true) << std::endl
               << std::endl;
 
+    /*
     json_like_string
             = "LogFuncArg(level=INFO,log={\\\"traceId\\\":\\\"u\\\",\\\"t\\\":\\\"s/r+qp+on/m/l/k/"
               "j/i+h+gf+e+d/c/b+a/z+y+x+w/vu++t+s/r/q+p+o+n/m/lk/ji/h/gf+ed+c/b/"
@@ -50,11 +51,25 @@ auto main() -> int {
     std::cout << "AST human readable output:" << json_record_ast4->print(true) << std::endl
               << std::endl;
 
-    json_like_string = " Key = { } ,log={ test =123 , text =  },,, log2={,,,}, log3={ , , ,  }, "
-                       "log4={{{,{,}}{}},,}}} ";
+    json_like_string
+            = "log=asd{a=1, b=2}asd";
     auto ast5 = custom_parser.parse_input(json_like_string);
     auto* json_record_ast5 = static_cast<JsonRecordAST*>(ast5.get());
     std::cout << "AST human readable output:" << json_record_ast5->print(true) << std::endl
+              << std::endl;
+    */
+
+    json_like_string = " Key = { } ,log={ test =123 , text =  },,,=, = , log2={,,,}, log3={ , , ,  }, "
+                       "log4={{{,{,}}{}},,}}} ";
+    auto ast6 = custom_parser.parse_input(json_like_string);
+    auto* json_record_ast6 = static_cast<JsonRecordAST*>(ast6.get());
+    std::cout << "AST human readable output:" << json_record_ast6->print(true) << std::endl
+              << std::endl;
+
+    json_like_string = "";
+    auto ast7 = custom_parser.parse_input(json_like_string);
+    auto* json_record_ast7 = static_cast<JsonRecordAST*>(ast7.get());
+    std::cout << "AST human readable output:" << json_record_ast7->print(true) << std::endl
               << std::endl;
     return 0;
 }
