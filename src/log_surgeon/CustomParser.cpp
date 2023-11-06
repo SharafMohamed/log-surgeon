@@ -211,8 +211,6 @@ void CustomParser::add_lexical_rules() {
     auto string_character = make_unique<RegexASTGroupByte>();
     string_character->add_literal(',');
     string_character->add_literal('=');
-    string_character->add_literal('{');
-    string_character->add_literal('}');
     auto string_without_space_character_prefix = make_unique<RegexASTGroupByte>();
     string_without_space_character_prefix->add_literal(',');
     string_without_space_character_prefix->add_literal('=');
