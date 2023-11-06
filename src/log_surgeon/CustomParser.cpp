@@ -104,17 +104,29 @@ static auto dict_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     auto* r2_ptr = dynamic_cast<JsonRecordAST*>(r2.get());
     unique_ptr<ParserAST>& r3 = m->non_terminal_cast(2)->get_parser_ast();
     r2_ptr->add_object_ast(r3);
-    return make_unique<JsonValueAST>(std::move(r2));
+    auto value = make_unique<JsonValueAST>(std::move(r2));
+    value->m_view_start_pos = m->token_cast(0)->m_start_pos;
+    value->m_view_end_pos = m->token_cast(4)->m_end_pos;
+    value->m_view_buffer = m->token_cast(4)->m_buffer;
+    return value;
 }
 
 static auto dict_record_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
     auto recordAST = make_unique<JsonRecordAST>(r2);
-    return make_unique<JsonValueAST>(std::move(recordAST));
+    auto value = make_unique<JsonValueAST>(std::move(recordAST));
+    value->m_view_start_pos = m->token_cast(0)->m_start_pos;
+    value->m_view_end_pos = m->token_cast(3)->m_end_pos;
+    value->m_view_buffer = m->token_cast(3)->m_buffer;
+    return value;
 }
 
-static auto empty_dictionary_rule(NonTerminal*) -> unique_ptr<ParserAST> {
-    return make_unique<JsonValueAST>(nullptr);
+static auto empty_dictionary_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
+    auto value = make_unique<JsonValueAST>(nullptr);
+    value->m_view_start_pos = m->token_cast(0)->m_start_pos;
+    value->m_view_end_pos = m->token_cast(2)->m_end_pos;
+    value->m_view_buffer = m->token_cast(2)->m_buffer;
+    return value;
 }
 
 auto CustomParser::bad_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
@@ -264,37 +276,32 @@ void CustomParser::add_productions() {
     add_production("Record", {"Record", "FinishedObject"}, existing_record_rule);
     add_production("Record", {"FinishedObject"}, new_record_rule);
     add_production("FinishedObject", {"GoodObject", "SpaceStar", "comma"}, identity_rule);
-    add_production("FinishedObject", {"NewGoodObject", "SpaceStar", "comma"}, identity_rule);
     add_production("FinishedObject", {"BadObject", "SpaceStar", "comma"}, identity_rule);
-    add_production(
-            "FinishedObject",
-            {"NewGoodObject", "SpaceStar", "Dictionary", "SpaceStar", "comma"},
-            identity_rule
-    );
     add_production("FinishedObject", {"GoodObject", "SpaceStar", "$end"}, identity_rule);
-    add_production("FinishedObject", {"NewGoodObject", "SpaceStar", "$end"}, identity_rule);
     add_production("FinishedObject", {"BadObject", "SpaceStar", "$end"}, identity_rule);
-    add_production(
-            "FinishedObject",
-            {"NewGoodObject", "SpaceStar", "Dictionary", "SpaceStar", "$end"},
-            identity_rule
-    );
     add_production("GoodObject", {"GoodObject", "SpaceStar", "equal"}, char_object_rule);
     add_production("GoodObject", {"GoodObject", "SpaceStar", "Value"}, existing_object_rule);
-    add_production("GoodObject", {"NewGoodObject", "SpaceStar", "equal"}, char_object_rule);
-    add_production("GoodObject", {"NewGoodObject", "SpaceStar", "Value"}, existing_object_rule);
-    add_production("NewGoodObject", {"BadObject", "SpaceStar", "equal"}, new_good_object_rule);
+    add_production("GoodObject", {"GoodObject", "SpaceStar", "Value"}, existing_object_rule);
+    add_production("GoodObject", {"BadObject", "SpaceStar", "equal"}, new_good_object_rule);
     add_production(
             "BadObject",
             {"SpaceStar", "Value"},
             std::bind(&CustomParser::bad_object_rule, this, std::placeholders::_1)
     );
     add_production("Value", {"string"}, new_string_rule);
-    add_production("Dictionary", {"lBrace", "Record", "FinishedBraceObject"}, dict_object_rule);
-    add_production("Dictionary", {"lBrace", "FinishedBraceObject"}, dict_record_rule);
-    add_production("Dictionary", {"lBrace", "SpaceStar", "rBrace"}, empty_dictionary_rule);
-    add_production("FinishedBraceObject", {"GoodObject", "SpaceStar", "rBrace"}, identity_rule);
-    add_production("FinishedBraceObject", {"BadObject", "SpaceStar", "rBrace"}, identity_rule);
+    add_production(
+            "Value",
+            {"lBrace", "Record", "GoodObject", "SpaceStar", "rBrace"},
+            dict_object_rule
+    );
+    add_production("Value", {"lBrace", "GoodObject", "SpaceStar", "rBrace"}, dict_record_rule);
+    add_production(
+            "Value",
+            {"lBrace", "Record", "BadObject", "SpaceStar", "rBrace"},
+            dict_object_rule
+    );
+    add_production("Value", {"lBrace", "BadObject", "SpaceStar", "rBrace"}, dict_record_rule);
+    add_production("Value", {"lBrace", "SpaceStar", "rBrace"}, empty_dictionary_rule);
     add_production("Value", {"boolean"}, boolean_rule);
     add_production("Value", {"integer"}, integer_rule);
     add_production("Value", {"integer"}, integer_rule);

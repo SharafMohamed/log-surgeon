@@ -57,7 +57,8 @@ auto main() -> int {
     std::cout << "AST human readable output:" << json_record_ast5->print(true) << std::endl
               << std::endl;
 
-    json_like_string = " Key = { } ,log={ test =123 , text =  },,,=, = , log2={,,,}, log3={ , , ,  }, "
+    /*
+    json_like_string = " Key = { } ,, comma_dict={,}, log={ test =123 , text =  },,,=, = , log2={,,,}, log3={ , , ,  }, "
                        "log4={{{,{,}}{}},,}}} ";
     auto ast6 = custom_parser.parse_input(json_like_string);
     auto* json_record_ast6 = static_cast<JsonRecordAST*>(ast6.get());
@@ -69,5 +70,6 @@ auto main() -> int {
     auto* json_record_ast7 = static_cast<JsonRecordAST*>(ast7.get());
     std::cout << "AST human readable output:" << json_record_ast7->print(true) << std::endl
               << std::endl;
+    */
     return 0;
 }
