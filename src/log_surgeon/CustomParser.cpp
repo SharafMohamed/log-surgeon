@@ -167,11 +167,6 @@ static auto char_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     return std::move(r1);
 }
 
-static auto identity_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
-    unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
-    return std::move(r1);
-}
-
 static auto new_record_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     return make_unique<JsonRecordAST>(r1);
@@ -273,12 +268,14 @@ void CustomParser::add_lexical_rules() {
 
 // " request and response, importance=high, this is some text, status=low, memory=10GB"
 void CustomParser::add_productions() {
-    add_production("Record", {"Record", "FinishedObject"}, existing_record_rule);
-    add_production("Record", {"FinishedObject"}, new_record_rule);
-    add_production("FinishedObject", {"GoodObject", "SpaceStar", "comma"}, identity_rule);
-    add_production("FinishedObject", {"BadObject", "SpaceStar", "comma"}, identity_rule);
-    add_production("FinishedObject", {"GoodObject", "SpaceStar", "$end"}, identity_rule);
-    add_production("FinishedObject", {"BadObject", "SpaceStar", "$end"}, identity_rule);
+    add_production("Record", {"Record", "GoodObject", "SpaceStar", "comma"}, existing_record_rule);
+    add_production("Record", {"Record", "BadObject", "SpaceStar", "comma"}, existing_record_rule);
+    add_production("Record", {"Record", "GoodObject", "SpaceStar", "$end"}, existing_record_rule);
+    add_production("Record", {"Record", "BadObject", "SpaceStar", "$end"}, existing_record_rule);
+    add_production("Record", {"GoodObject", "SpaceStar", "comma"}, new_record_rule);
+    add_production("Record", {"BadObject", "SpaceStar", "comma"}, new_record_rule);
+    add_production("Record", {"GoodObject", "SpaceStar", "$end"}, new_record_rule);
+    add_production("Record", {"BadObject", "SpaceStar", "$end"}, new_record_rule);
     add_production("GoodObject", {"GoodObject", "SpaceStar", "equal"}, char_object_rule);
     add_production("GoodObject", {"GoodObject", "SpaceStar", "Value"}, existing_object_rule);
     add_production("GoodObject", {"GoodObject", "SpaceStar", "Value"}, existing_object_rule);
