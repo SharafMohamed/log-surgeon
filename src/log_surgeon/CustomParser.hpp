@@ -38,21 +38,30 @@ inline std::string print_json_type(JsonValueType json_value_type) {
 class JsonValueAST : public ParserAST {
 public:
     // Constructor
-    JsonValueAST(std::string const& value, JsonValueType type);
+    JsonValueAST(
+            uint32_t view_start_pos,
+            uint32_t view_end_pos,
+            char const* view_buffer,
+            JsonValueType type
+    );
 
     JsonValueAST(std::unique_ptr<ParserAST> json_record_ast);
 
-    auto add_character(char character) -> void { m_value.push_back(character); }
-
-    auto add_string(std::string const& str) -> void { m_value += str; }
-
     auto change_type(JsonValueType type) -> void { m_type = type; }
 
-    auto get_value() const -> std::string const& { return m_value; }
+    [[nodiscard]] auto to_string_view() -> std::string_view {
+        if (m_view_buffer) {
+            return {m_view_buffer + m_view_start_pos, m_view_end_pos - m_view_start_pos};
+        } else {
+            return {""};
+        }
+    }
 
     auto print(bool with_types) -> std::string;
 
-    std::string m_value;
+    uint32_t m_view_start_pos{0};
+    uint32_t m_view_end_pos{0};
+    char const* m_view_buffer{nullptr};
     JsonValueType m_type;
     std::unique_ptr<ParserAST> m_dictionary_json_record;
 };
@@ -60,23 +69,25 @@ public:
 class JsonObjectAST : public ParserAST {
 public:
     // Constructor
-    JsonObjectAST(std::string const& key, std::unique_ptr<ParserAST>& value_ast)
+    JsonObjectAST(std::string_view key, std::unique_ptr<ParserAST>& value_ast)
             : m_key(key),
               m_value_ast(std::move(value_ast)) {}
 
     JsonObjectAST(uint32_t& bad_key_counter, std::unique_ptr<ParserAST>& value_ast)
-            : m_key("key" + std::to_string(bad_key_counter++)),
+            : m_bad_key("key" + std::to_string(bad_key_counter++)),
+              m_key(m_bad_key),
               m_value_ast(std::move(value_ast)) {}
 
     auto print(bool with_types) -> std::string {
-        std::string output = "\"" + m_key + "\"";
+        std::string output = "\"" + std::string(m_key) + "\"";
         output += ":";
         auto* value_ptr = static_cast<JsonValueAST*>(m_value_ast.get());
         output += value_ptr->print(with_types);
         return output;
     }
 
-    std::string m_key;
+    std::string m_bad_key{};
+    std::string_view const m_key;
     std::unique_ptr<ParserAST> m_value_ast;
 };
 
@@ -110,8 +121,7 @@ public:
     // Constructor
     CustomParser();
 
-    auto parse_input(std::string const& json_like_string)
-            -> std::unique_ptr<ParserAST>;
+    auto parse_input(std::string const& json_like_string) -> std::unique_ptr<ParserAST>;
 
 private:
     /**

@@ -27,14 +27,20 @@ using std::string;
 using std::unique_ptr;
 
 namespace log_surgeon {
-JsonValueAST::JsonValueAST(std::string const& value, JsonValueType type)
-        : m_value(value),
+JsonValueAST::JsonValueAST(
+        uint32_t view_start_pos,
+        uint32_t view_end_pos,
+        char const* view_buffer,
+        JsonValueType type
+)
+        : m_view_start_pos(view_start_pos),
+          m_view_end_pos(view_end_pos),
+          m_view_buffer(view_buffer),
           m_type(type),
           m_dictionary_json_record(nullptr) {}
 
 JsonValueAST::JsonValueAST(std::unique_ptr<ParserAST> json_record_ast)
-        : m_value(""),
-          m_type(JsonValueType::Dictionary),
+        : m_type(JsonValueType::Dictionary),
           m_dictionary_json_record(std::move(json_record_ast)) {}
 
 auto JsonValueAST::print(bool with_types) -> std::string {
@@ -55,29 +61,42 @@ auto JsonValueAST::print(bool with_types) -> std::string {
             auto* json_record_ast = dynamic_cast<JsonRecordAST*>(m_dictionary_json_record.get());
             output += json_record_ast->print(false);
         }
-        output += m_value;
+        output += to_string_view();
     } else {
-        output += m_value;
+        output += to_string_view();
     }
     return output;
 }
 
 static auto boolean_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
-    return make_unique<JsonValueAST>(m->token_cast(0)->to_string(), JsonValueType::Boolean);
+    return make_unique<JsonValueAST>(
+            m->token_cast(0)->m_start_pos,
+            m->token_cast(0)->m_end_pos,
+            m->token_cast(0)->m_buffer,
+            JsonValueType::Boolean
+    );
 }
 
 static auto empty_string_rule(NonTerminal*) -> unique_ptr<ParserAST> {
-    return make_unique<JsonValueAST>("", JsonValueType::String);
+    return make_unique<JsonValueAST>(0, 0, nullptr, JsonValueType::String);
 }
 
 static auto new_string_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
-    string r1 = m->token_cast(0)->to_string();
-    return make_unique<JsonValueAST>(r1, JsonValueType::String);
+    return make_unique<JsonValueAST>(
+            m->token_cast(0)->m_start_pos,
+            m->token_cast(0)->m_end_pos,
+            m->token_cast(0)->m_buffer,
+            JsonValueType::String
+    );
 }
 
 static auto integer_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
-    string r1 = m->token_cast(0)->to_string();
-    return make_unique<JsonValueAST>(r1, JsonValueType::Integer);
+    return make_unique<JsonValueAST>(
+            m->token_cast(0)->m_start_pos,
+            m->token_cast(0)->m_end_pos,
+            m->token_cast(0)->m_buffer,
+            JsonValueType::Integer
+    );
 }
 
 static auto dict_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
@@ -107,8 +126,9 @@ static auto new_good_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     auto* r1_ptr = dynamic_cast<JsonObjectAST*>(r1.get());
     auto* value_ast = dynamic_cast<JsonValueAST*>(r1_ptr->m_value_ast.get());
-    unique_ptr<ParserAST> empty_value = make_unique<JsonValueAST>("", JsonValueType::String);
-    return make_unique<JsonObjectAST>(value_ast->m_value, empty_value);
+    unique_ptr<ParserAST> empty_value
+            = make_unique<JsonValueAST>(0, 0, nullptr, JsonValueType::String);
+    return make_unique<JsonObjectAST>(value_ast->to_string_view(), empty_value);
 }
 
 static auto existing_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
@@ -117,14 +137,11 @@ static auto existing_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     auto* value_ast = dynamic_cast<JsonValueAST*>(r1_ptr->m_value_ast.get());
     unique_ptr<ParserAST>& r3 = m->non_terminal_cast(2)->get_parser_ast();
     auto* r3_ptr = dynamic_cast<JsonValueAST*>(r3.get());
-    if (value_ast->m_value.empty() && value_ast->m_type == JsonValueType::String) {
+    if (nullptr == value_ast->m_view_buffer && value_ast->m_type == JsonValueType::String) {
         r1_ptr->m_value_ast = std::move(r3);
     } else {
-        unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
-        auto* r2_ptr = dynamic_cast<JsonValueAST*>(r2.get());
-        value_ast->add_string(r2_ptr->get_value());
         value_ast->change_type(JsonValueType::String);
-        value_ast->add_string(r3_ptr->get_value());
+        value_ast->m_view_end_pos = r3_ptr->m_view_end_pos;
     }
     return std::move(r1);
 }
@@ -133,12 +150,8 @@ static auto char_object_rule(NonTerminal* m) -> unique_ptr<ParserAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     auto* r1_ptr = dynamic_cast<JsonObjectAST*>(r1.get());
     auto* value_ast = dynamic_cast<JsonValueAST*>(r1_ptr->m_value_ast.get());
-    unique_ptr<ParserAST>& r2 = m->non_terminal_cast(1)->get_parser_ast();
-    auto* r2_ptr = dynamic_cast<JsonValueAST*>(r2.get());
-    value_ast->add_string(r2_ptr->get_value());
-    string r3 = m->token_cast(2)->to_string();
     value_ast->change_type(JsonValueType::String);
-    value_ast->add_string(r3);
+    value_ast->m_view_end_pos = m->token_cast(2)->m_end_pos;
     return std::move(r1);
 }
 
@@ -253,7 +266,6 @@ void CustomParser::add_productions() {
     add_production("FinishedObject", {"GoodObject", "SpaceStar", "comma"}, identity_rule);
     add_production("FinishedObject", {"NewGoodObject", "SpaceStar", "comma"}, identity_rule);
     add_production("FinishedObject", {"BadObject", "SpaceStar", "comma"}, identity_rule);
-    add_production("FinishedObject", {"BadObjectOrKey", "SpaceStar", "comma"}, identity_rule);
     add_production(
             "FinishedObject",
             {"NewGoodObject", "SpaceStar", "Dictionary", "SpaceStar", "comma"},
@@ -262,36 +274,27 @@ void CustomParser::add_productions() {
     add_production("FinishedObject", {"GoodObject", "SpaceStar", "$end"}, identity_rule);
     add_production("FinishedObject", {"NewGoodObject", "SpaceStar", "$end"}, identity_rule);
     add_production("FinishedObject", {"BadObject", "SpaceStar", "$end"}, identity_rule);
-    add_production("FinishedObject", {"BadObjectOrKey", "SpaceStar", "$end"}, identity_rule);
     add_production(
             "FinishedObject",
             {"NewGoodObject", "SpaceStar", "Dictionary", "SpaceStar", "$end"},
             identity_rule
     );
     add_production("GoodObject", {"GoodObject", "SpaceStar", "equal"}, char_object_rule);
-    add_production("GoodObject", {"GoodObject", "SpaceStar", "ValueOrString"}, existing_object_rule);
+    add_production("GoodObject", {"GoodObject", "SpaceStar", "Value"}, existing_object_rule);
     add_production("GoodObject", {"NewGoodObject", "SpaceStar", "equal"}, char_object_rule);
-    add_production("GoodObject", {"NewGoodObject", "SpaceStar", "ValueOrString"}, existing_object_rule);
-    add_production("NewGoodObject", {"BadObjectOrKey", "SpaceStar", "equal"}, new_good_object_rule);
+    add_production("GoodObject", {"NewGoodObject", "SpaceStar", "Value"}, existing_object_rule);
+    add_production("NewGoodObject", {"BadObject", "SpaceStar", "equal"}, new_good_object_rule);
     add_production(
             "BadObject",
             {"SpaceStar", "Value"},
             std::bind(&CustomParser::bad_object_rule, this, std::placeholders::_1)
     );
-    add_production(
-            "BadObjectOrKey",
-            {"SpaceStar", "StringNonTerminal"},
-            std::bind(&CustomParser::bad_object_rule, this, std::placeholders::_1)
-    );
-    add_production("StringNonTerminal", {"string"}, new_string_rule);
-    add_production("ValueOrString", {"string"}, new_string_rule);
-    add_production("ValueOrString", {"Value"}, identity_rule);
+    add_production("Value", {"string"}, new_string_rule);
     add_production("Dictionary", {"lBrace", "Record", "FinishedBraceObject"}, dict_object_rule);
     add_production("Dictionary", {"lBrace", "FinishedBraceObject"}, dict_record_rule);
     add_production("Dictionary", {"lBrace", "SpaceStar", "rBrace"}, empty_dictionary_rule);
     add_production("FinishedBraceObject", {"GoodObject", "SpaceStar", "rBrace"}, identity_rule);
     add_production("FinishedBraceObject", {"BadObject", "SpaceStar", "rBrace"}, identity_rule);
-    add_production("FinishedBraceObject", {"BadObjectOrKey", "SpaceStar", "rBrace"}, identity_rule);
     add_production("Value", {"boolean"}, boolean_rule);
     add_production("Value", {"integer"}, integer_rule);
     add_production("Value", {"integer"}, integer_rule);
