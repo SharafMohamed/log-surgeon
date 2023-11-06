@@ -10,16 +10,6 @@
 #include <log_surgeon/LALR1Parser.hpp>
 #include <log_surgeon/Schema.hpp>
 
-using RegexASTGroupByte = log_surgeon::finite_automata::RegexASTGroup<
-        log_surgeon::finite_automata::RegexNFAByteState>;
-using RegexASTLiteralByte = log_surgeon::finite_automata::RegexASTLiteral<
-        log_surgeon::finite_automata::RegexNFAByteState>;
-using RegexASTMultiplicationByte = log_surgeon::finite_automata::RegexASTMultiplication<
-        log_surgeon::finite_automata::RegexNFAByteState>;
-using RegexASTCatByte = log_surgeon::finite_automata::RegexASTCat<
-        log_surgeon::finite_automata::RegexNFAByteState>;
-using RegexASTOrByte
-        = log_surgeon::finite_automata::RegexASTOr<log_surgeon::finite_automata::RegexNFAByteState>;
 using std::make_unique;
 using std::string;
 using std::unique_ptr;
