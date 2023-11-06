@@ -20,6 +20,8 @@ using RegexASTMultiplicationByte = log_surgeon::finite_automata::RegexASTMultipl
         log_surgeon::finite_automata::RegexNFAByteState>;
 using RegexASTCatByte = log_surgeon::finite_automata::RegexASTCat<
         log_surgeon::finite_automata::RegexNFAByteState>;
+using RegexASTOrByte
+        = log_surgeon::finite_automata::RegexASTOr<log_surgeon::finite_automata::RegexNFAByteState>;
 using std::make_unique;
 using std::string;
 using std::unique_ptr;
@@ -208,32 +210,40 @@ void CustomParser::add_lexical_rules() {
     add_token_chain("boolean", "true");
     add_token_chain("boolean", "false");
     // default constructs to a m_negate group
-    auto string_character = make_unique<RegexASTGroupByte>();
-    string_character->add_literal(',');
-    string_character->add_literal('=');
-    auto string_without_space_character_prefix = make_unique<RegexASTGroupByte>();
-    string_without_space_character_prefix->add_literal(',');
-    string_without_space_character_prefix->add_literal('=');
-    string_without_space_character_prefix->add_literal(' ');
-    string_without_space_character_prefix->add_literal('{');
-    string_without_space_character_prefix->add_literal('}');
-    auto string_without_space_character_suffix = make_unique<RegexASTGroupByte>();
-    string_without_space_character_suffix->add_literal(',');
-    string_without_space_character_suffix->add_literal('=');
-    string_without_space_character_suffix->add_literal(' ');
-    string_without_space_character_suffix->add_literal('{');
-    string_without_space_character_suffix->add_literal('}');
+    auto single_char = make_unique<RegexASTGroupByte>();
+    single_char->add_literal(',');
+    single_char->add_literal('=');
+    single_char->add_literal(' ');
+    single_char->add_literal('{');
+    single_char->add_literal('}');
+    auto string_infix = make_unique<RegexASTGroupByte>();
+    string_infix->add_literal(',');
+    string_infix->add_literal('=');
+    auto string_prefix = make_unique<RegexASTGroupByte>();
+    string_prefix->add_literal(',');
+    string_prefix->add_literal('=');
+    string_prefix->add_literal(' ');
+    string_prefix->add_literal('{');
+    string_prefix->add_literal('}');
+    auto string_suffix = make_unique<RegexASTGroupByte>();
+    string_suffix->add_literal(',');
+    string_suffix->add_literal('=');
+    string_suffix->add_literal(' ');
+    string_suffix->add_literal('{');
+    string_suffix->add_literal('}');
     auto string_character_plus
-            = make_unique<RegexASTMultiplicationByte>(std::move(string_character), 1, 0);
-    auto string_with_space_character_plus_prefix = make_unique<RegexASTCatByte>(
-            std::move(string_without_space_character_prefix),
+            = make_unique<RegexASTMultiplicationByte>(std::move(string_infix), 1, 0);
+    auto multi_char_string_prefix = make_unique<RegexASTCatByte>(
+            std::move(string_prefix),
             std::move(string_character_plus)
     );
-    auto string_with_space_character_plus = make_unique<RegexASTCatByte>(
-            std::move(string_with_space_character_plus_prefix),
-            std::move(string_without_space_character_suffix)
+    auto multi_char_string = make_unique<RegexASTCatByte>(
+            std::move(multi_char_string_prefix),
+            std::move(string_suffix)
     );
-    add_rule("string", std::move(string_with_space_character_plus));
+    auto any_string
+            = make_unique<RegexASTOrByte>(std::move(single_char), std::move(multi_char_string));
+    add_rule("string", std::move(any_string));
 }
 
 // " request and response, importance=high, this is some text, status=low, memory=10GB"
