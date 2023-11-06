@@ -253,6 +253,7 @@ void CustomParser::add_productions() {
     add_production("FinishedObject", {"GoodObject", "SpaceStar", "comma"}, identity_rule);
     add_production("FinishedObject", {"NewGoodObject", "SpaceStar", "comma"}, identity_rule);
     add_production("FinishedObject", {"BadObject", "SpaceStar", "comma"}, identity_rule);
+    add_production("FinishedObject", {"BadObjectOrKey", "SpaceStar", "comma"}, identity_rule);
     add_production(
             "FinishedObject",
             {"NewGoodObject", "SpaceStar", "Dictionary", "SpaceStar", "comma"},
@@ -261,27 +262,36 @@ void CustomParser::add_productions() {
     add_production("FinishedObject", {"GoodObject", "SpaceStar", "$end"}, identity_rule);
     add_production("FinishedObject", {"NewGoodObject", "SpaceStar", "$end"}, identity_rule);
     add_production("FinishedObject", {"BadObject", "SpaceStar", "$end"}, identity_rule);
+    add_production("FinishedObject", {"BadObjectOrKey", "SpaceStar", "$end"}, identity_rule);
     add_production(
             "FinishedObject",
             {"NewGoodObject", "SpaceStar", "Dictionary", "SpaceStar", "$end"},
             identity_rule
     );
     add_production("GoodObject", {"GoodObject", "SpaceStar", "equal"}, char_object_rule);
-    add_production("GoodObject", {"GoodObject", "SpaceStar", "Value"}, existing_object_rule);
+    add_production("GoodObject", {"GoodObject", "SpaceStar", "ValueOrString"}, existing_object_rule);
     add_production("GoodObject", {"NewGoodObject", "SpaceStar", "equal"}, char_object_rule);
-    add_production("GoodObject", {"NewGoodObject", "SpaceStar", "Value"}, existing_object_rule);
-    add_production("NewGoodObject", {"BadObject", "SpaceStar", "equal"}, new_good_object_rule);
+    add_production("GoodObject", {"NewGoodObject", "SpaceStar", "ValueOrString"}, existing_object_rule);
+    add_production("NewGoodObject", {"BadObjectOrKey", "SpaceStar", "equal"}, new_good_object_rule);
     add_production(
             "BadObject",
             {"SpaceStar", "Value"},
             std::bind(&CustomParser::bad_object_rule, this, std::placeholders::_1)
     );
-    add_production("Value", {"string"}, new_string_rule);
+    add_production(
+            "BadObjectOrKey",
+            {"SpaceStar", "StringNonTerminal"},
+            std::bind(&CustomParser::bad_object_rule, this, std::placeholders::_1)
+    );
+    add_production("StringNonTerminal", {"string"}, new_string_rule);
+    add_production("ValueOrString", {"string"}, new_string_rule);
+    add_production("ValueOrString", {"Value"}, identity_rule);
     add_production("Dictionary", {"lBrace", "Record", "FinishedBraceObject"}, dict_object_rule);
     add_production("Dictionary", {"lBrace", "FinishedBraceObject"}, dict_record_rule);
     add_production("Dictionary", {"lBrace", "SpaceStar", "rBrace"}, empty_dictionary_rule);
     add_production("FinishedBraceObject", {"GoodObject", "SpaceStar", "rBrace"}, identity_rule);
     add_production("FinishedBraceObject", {"BadObject", "SpaceStar", "rBrace"}, identity_rule);
+    add_production("FinishedBraceObject", {"BadObjectOrKey", "SpaceStar", "rBrace"}, identity_rule);
     add_production("Value", {"boolean"}, boolean_rule);
     add_production("Value", {"integer"}, integer_rule);
     add_production("Value", {"integer"}, integer_rule);
