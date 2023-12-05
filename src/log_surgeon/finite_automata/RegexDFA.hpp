@@ -27,7 +27,7 @@ public:
 
     [[nodiscard]] auto get_tags() const -> std::vector<int> const& { return m_tags; }
 
-    auto is_accepting() -> bool { return !m_tags.empty(); }
+    auto is_accepting() const -> bool { return !m_tags.empty(); }
 
     auto add_byte_transition(uint8_t const& byte, RegexDFAState<stateType>* dest_state) -> void {
         m_bytes_transition[byte] = dest_state;
@@ -39,7 +39,7 @@ public:
      * @param character
      * @return RegexDFAState<stateType>*
      */
-    auto next(uint32_t character) -> RegexDFAState<stateType>*;
+    auto next(uint32_t character) const -> RegexDFAState<stateType>*;
 
 private:
     std::vector<int> m_tags;
@@ -50,7 +50,44 @@ private:
     std::conditional_t<stateType == RegexDFAStateType::UTF8, Tree, std::tuple<>> m_tree_transitions;
 };
 
+template <typename DFAState>
+class RegexDFAStatePair {
+public:
+    /// TODO: a lot of this pointer usage could probably be references
+    RegexDFAStatePair(DFAState const* state1, DFAState const* state2)
+            : m_state1(state1),
+              m_state2(state2){};
+
+    bool operator<(RegexDFAStatePair const& rhs) const {
+        if (m_state1 == rhs.m_state1) {
+            return m_state2 < rhs.m_state2;
+        }
+        return m_state1 < rhs.m_state1;  // assume that you compare the record based on a
+    }
+
+    /**
+     * Generates all pairs reachable from the current pair via a single input.
+     * @return vector of reachable pairs
+     */
+    auto generate_reachable_pairs() -> std::set<RegexDFAStatePair>;
+
+    /**
+     * @return if both pairs are accepting
+     */
+    auto is_accepting() const -> bool;
+
+    /**
+     * @return the tags of the first state of the pair
+     */
+    [[nodiscard]] auto get_first_tags() const -> std::vector<int> const&;
+
+private:
+    DFAState const* m_state1;
+    DFAState const* m_state2;
+};
+
 using RegexDFAByteState = RegexDFAState<RegexDFAStateType::Byte>;
+
 using RegexDFAUTF8State = RegexDFAState<RegexDFAStateType::UTF8>;
 
 template <typename DFAStateType>
@@ -65,7 +102,9 @@ public:
     template <typename NFAStateType>
     auto new_state(std::set<NFAStateType*> const& set) -> DFAStateType*;
 
-    auto get_root() -> DFAStateType* { return m_states.at(0).get(); }
+    auto get_root() const -> DFAStateType const* { return m_states.at(0).get(); }
+
+    auto get_intersect(std::unique_ptr<RegexDFA> const& dfa_in) -> std::set<uint32_t>;
 
 private:
     std::vector<std::unique_ptr<DFAStateType>> m_states;

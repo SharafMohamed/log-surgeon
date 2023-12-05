@@ -40,7 +40,7 @@ void Lexer<NFAStateType, DFAStateType>::flip_states(uint32_t old_storage_size) {
 template <typename NFAStateType, typename DFAStateType>
 auto Lexer<NFAStateType, DFAStateType>::scan(ParserInputBuffer& input_buffer, Token& token)
         -> ErrorCode {
-    DFAStateType* state = m_dfa->get_root();
+    DFAStateType const* state = m_dfa->get_root();
     if (m_asked_for_more_data) {
         state = m_prev_state;
         m_asked_for_more_data = false;
@@ -379,7 +379,7 @@ void Lexer<NFAStateType, DFAStateType>::generate() {
         r.add_ast(&nfa);
     }
     m_dfa = nfa_to_dfa(nfa);
-    DFAStateType* state = m_dfa->get_root();
+    DFAStateType const* state = m_dfa->get_root();
     for (uint32_t i = 0; i < cSizeOfByte; i++) {
         if (state->next(i) != nullptr) {
             m_is_first_char[i] = true;
