@@ -21,6 +21,9 @@ namespace log_surgeon {
 template <typename NFAStateType, typename DFAStateType>
 class Lexer {
 public:
+    // TODO: make this constexpr std::array<uint32_t,1>, but you have to wait for other PRs to avoid
+    // conflicts as this will touch a lot of things
+
     // std::vector<int> can be declared as constexpr in c++20
     static inline std::vector<int> const cTokenEndTypes = {(int)SymbolID::TokenEndID};
     static inline std::vector<int> const cTokenUncaughtStringTypes
