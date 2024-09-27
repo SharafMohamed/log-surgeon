@@ -79,7 +79,7 @@ public:
     ) const -> std::vector<NegativeTaggedTransition<state_type>> const& {
         return m_negative_tagged_transitions;
     }
-    
+
     auto set_epsilon_transitions(std::vector<RegexNFAState*>& epsilon_transitions) -> void {
         m_epsilon_transitions = epsilon_transitions;
     }
