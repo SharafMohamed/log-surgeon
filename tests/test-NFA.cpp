@@ -42,7 +42,7 @@ TEST_CASE("Test NFA", "[NFA]") {
     auto& capture_rule_ast = dynamic_cast<SchemaVarAST&>(*schema_ast->m_schema_vars[0]);
     ByteNFA nfa;
     ByteLexicalRule rule(0, std::move(capture_rule_ast.m_regex_ptr));
-    rule.add_ast(&nfa);
+    rule.add_to_nfa(&nfa);
 
     // Add helper for updating state_queue and visited_states
     std::queue<RegexNFAByteState const*> state_queue;
@@ -139,11 +139,11 @@ TEST_CASE("Test NFA", "[NFA]") {
                                "negative_tagged_transitions={5[0,1,2,3,],}\n";
     expected_serialized_nfa += "3:byte_transitions={},"
                                "epsilon_transitions={},"
-                               "positive_tagged_transitions={6[1],},"
+                               "positive_tagged_transitions={6[0],},"
                                "negative_tagged_transitions={}\n";
     expected_serialized_nfa += "4:byte_transitions={},"
                                "epsilon_transitions={},"
-                               "positive_tagged_transitions={7[2],},"
+                               "positive_tagged_transitions={7[1],},"
                                "negative_tagged_transitions={}\n";
     expected_serialized_nfa += "5:accepting_tag=0,byte_transitions={},"
                                "epsilon_transitions={},"
@@ -152,14 +152,14 @@ TEST_CASE("Test NFA", "[NFA]") {
     expected_serialized_nfa += "6:byte_transitions={},"
                                "epsilon_transitions={},"
                                "positive_tagged_transitions={},"
-                               "negative_tagged_transitions={8[2,],}\n";
+                               "negative_tagged_transitions={8[1,],}\n";
     expected_serialized_nfa += "7:byte_transitions={},"
                                "epsilon_transitions={},"
                                "positive_tagged_transitions={},"
-                               "negative_tagged_transitions={8[1,],}\n";
+                               "negative_tagged_transitions={8[0,],}\n";
     expected_serialized_nfa += "8:byte_transitions={},"
                                "epsilon_transitions={},"
-                               "positive_tagged_transitions={9[0],},"
+                               "positive_tagged_transitions={9[2],},"
                                "negative_tagged_transitions={}\n";
     expected_serialized_nfa += "9:byte_transitions={B-->10,},"
                                "epsilon_transitions={},"

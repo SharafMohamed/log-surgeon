@@ -33,9 +33,10 @@ public:
      * Adds AST representing the lexical rule to the NFA
      * @param nfa
      */
-    auto add_ast(finite_automata::RegexNFA<NFAStateType>* nfa) -> void;
 
-    [[nodiscard]] auto get_variable_id() const -> uint32_t const& { return m_variable_id; }
+    auto add_to_nfa(finite_automata::RegexNFA<NFAStateType>* nfa) const -> void;
+
+    [[nodiscard]] auto get_variable_id() const -> uint32_t { return m_variable_id; }
 
     [[nodiscard]] auto get_regex() const -> finite_automata::RegexAST<NFAStateType>* {
         return m_regex.get();
@@ -50,9 +51,9 @@ template <typename NFAStateType, typename DFAStateType>
 class Lexer {
 public:
     // std::vector<int> can be declared as constexpr in c++20
-    static inline std::vector<int> const cTokenEndTypes = {(int)SymbolID::TokenEndID};
-    static inline std::vector<int> const cTokenUncaughtStringTypes
-            = {(int)SymbolID::TokenUncaughtStringID};
+    static inline std::vector<uint32_t> const cTokenEndTypes = {(uint32_t)SymbolID::TokenEndID};
+    static inline std::vector<uint32_t> const cTokenUncaughtStringTypes
+            = {(uint32_t)SymbolID::TokenUncaughtStringID};
 
     /**
      * Generate a DFA from an NFA
@@ -81,7 +82,7 @@ public:
      * @param variable_id
      * @return finite_automata::RegexAST*
      */
-    auto get_rule(uint32_t const& variable_id) -> finite_automata::RegexAST<NFAStateType>*;
+    auto get_rule(uint32_t variable_id) -> finite_automata::RegexAST<NFAStateType>*;
 
     /**
      * Generate DFA for lexer
@@ -183,8 +184,8 @@ private:
     uint32_t m_last_match_pos{0};
     uint32_t m_last_match_line{0};
     bool m_match{false};
-    std::vector<int> const* m_type_ids{nullptr};
-    std::set<int> m_type_ids_set;
+    std::vector<uint32_t> const* m_type_ids{nullptr};
+    std::set<uint32_t> m_type_ids_set;
     std::array<bool, cSizeOfByte> m_is_delimiter{false};
     std::array<bool, cSizeOfByte> m_is_first_char{false};
     std::vector<LexicalRule<NFAStateType>> m_rules;
