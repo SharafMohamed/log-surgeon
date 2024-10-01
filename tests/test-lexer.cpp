@@ -1,5 +1,6 @@
+#include <codecvt>
 #include <cstdint>
-#include <numeric>
+#include <locale>
 #include <ranges>
 #include <string>
 #include <vector>
@@ -33,29 +34,16 @@ auto test_regex_ast(string const& regex, u32string const& expected_serialized_as
     log_surgeon::Schema schema;
     schema.add_variable("capture", regex, -1);
     auto const schema_ast = schema.release_schema_ast_ptr();
-    auto const& capture_rule_ast = dynamic_cast<SchemaVarAST&>(*schema_ast->m_schema_vars[0]);
+    auto const* capture_rule_ast = dynamic_cast<SchemaVarAST*>(schema_ast->m_schema_vars[0].get());
+    REQUIRE(capture_rule_ast != nullptr);
 
-    auto u32_to_u8 = [](char32_t c) -> std::string {
-        std::string u8;
-        if (c <= 0x7F) {
-            u8 += static_cast<char>(c);
-        } else if (c <= 0x7FF) {
-            u8 += static_cast<char>((c >> 6) | 0xC0);
-            u8 += static_cast<char>((c & 0x3F) | 0x80);
-        } else if (c <= 0xFFFF) {
-            u8 += static_cast<char>((c >> 12) | 0xE0);
-            u8 += static_cast<char>(((c >> 6) & 0x3F) | 0x80);
-            u8 += static_cast<char>((c & 0x3F) | 0x80);
-        } else {
-            u8 += static_cast<char>((c >> 18) | 0xF0);
-            u8 += static_cast<char>(((c >> 12) & 0x3F) | 0x80);
-            u8 += static_cast<char>(((c >> 6) & 0x3F) | 0x80);
-            u8 += static_cast<char>((c & 0x3F) | 0x80);
-        }
-        return u8;
+    auto u32_to_u8 = [](char32_t const u32_char) -> std::string {
+        std::u32string const u32_str{1, u32_char};
+        std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
+        return converter.to_bytes(u32_str.data(), u32_str.data() + u32_str.size());
     };
 
-    auto const actual_u32string = capture_rule_ast.m_regex_ptr->serialize();
+    auto const actual_u32string = capture_rule_ast->m_regex_ptr->serialize();
     auto const actual_string = fmt::format(
             "{}",
             fmt::join(actual_u32string | std::ranges::views::transform(u32_to_u8), "")
@@ -136,13 +124,28 @@ TEST_CASE("Test the Schema class", "[Schema]") {
         // serialized output includes tags (<n> for positive matches, <~n> for negative matches) to
         // indicate which capture groups are matched or unmatched at each node.
         test_regex_ast(
-                "Z|(A(?<letter>((?<letter1>(a)|(b))|(?<letter2>(c)|(d))))B(?<containerID>\\d+)C)",
-                U"(Z<~0><~1><~2><~3>)|(A((((a)|(b))<0><~1>)|(((c)|(d))<1><~0>))<2>B([0-9]{1,inf})<"
-                "3>C)"
+                // clang-format off
+                "Z|("
+                    "A(?<letter>("
+                        "(?<letter1>(a)|(b))|"
+                        "(?<letter2>(c)|(d))"
+                    "))B("
+                        "?<containerID>\\d+"
+                    ")C"
+                ")",
+                U"(Z<~0><~1><~2><~3>)|("
+                    "A("
+                        "(((a)|(b))<0><~1>)|"
+                        "(((c)|(d))<1><~0>)"
+                    ")<2>B("
+                        "[0-9]{1,inf}"
+                    ")<3>C"
+                ")"
+                // clang-format on
         );
     }
 
-    SECTION("Test reptition regex") {
+    SECTION("Test repetition regex") {
         // Repetition without capture groups untagged and tagged AST are the same
         test_regex_ast("a{0,10}", U"()|(a{1,10})");
         test_regex_ast("a{5,10}", U"a{5,10}");
