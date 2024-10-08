@@ -157,20 +157,23 @@ public:
         return new RegexASTEmpty(*this);
     }
 
-    // Do nothing as an empty node contains no utf8 characters.
     auto set_possible_inputs_to_true(
             [[maybe_unused]] std::array<bool, cSizeOfUnicode>& is_possible_input
-    ) const -> void override {}
+    ) const -> void override {
+        // Do nothing as an empty node contains no utf8 characters.
+    }
 
-    // Do nothing as an empty node contains no delimiters.
     auto remove_delimiters_from_wildcard([[maybe_unused]] std::vector<uint32_t>& delimiters
-    ) -> void override {}
+    ) -> void override {
+        // Do nothing as an empty node contains no delimiters.
+    }
 
-    // Do nothing as adding an empty node to the NFA is a null operation.
     auto add_to_nfa(
             [[maybe_unused]] RegexNFA<NFAStateType>* nfa,
             [[maybe_unused]] NFAStateType* end_state
-    ) const -> void override {}
+    ) const -> void override {
+        // Do nothing as adding an empty node to the NFA is a null operation.
+    }
 
     [[nodiscard]] auto serialize() const -> std::u32string override;
 };
@@ -876,7 +879,7 @@ template <typename NFAStateType>
     auto const max_string = std::to_string(m_max);
 
     return fmt::format(
-            U"{}{{{},{}}}{}",
+            U"({}){{{},{}}}{}",
             nullptr != m_operand ? m_operand->serialize() : U"null",
             std::u32string(min_string.begin(), min_string.end()),
             is_infinite() ? U"inf" : std::u32string(max_string.begin(), max_string.end()),
