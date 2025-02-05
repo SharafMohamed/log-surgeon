@@ -98,7 +98,7 @@ private:
      * cannot be mapped to an existing config. In the case of a new DFA state, it is added to
      * `m_states`, `dfa_states`, and `unexplored_sets`.
      *
-     * @param new_config_set The configuration set used to create the DFA state
+     * @param config_set The configuration set for which to create or get the DFA state.
      * @param dfa_states Returns an updated map of configuration sets to DFA states.
      * @param unexplored_sets Returns a queue of unexplored states.
      * @return If `new_config_set` is already in `dfa_states`, a pair:
@@ -112,7 +112,7 @@ private:
      * - std::nullopt.
      */
     auto create_or_get_dfa_state(
-            ConfigurationSet const& new_config_set,
+            ConfigurationSet const& config_set,
             std::map<ConfigurationSet, TypedDfaState*>& dfa_states,
             std::queue<ConfigurationSet>& unexplored_sets
     ) -> std::pair<TypedDfaState*, std::optional<std::unordered_map<register_id_t, register_id_t>>>;
@@ -213,12 +213,12 @@ auto Dfa<TypedDfaState, TypedNfaState>::generate(Nfa<TypedNfaState> const& nfa) 
         auto* dfa_state{dfa_states.at(config_set)};
         unexplored_sets.pop();
         std::map<tag_id_t, register_id_t> tag_id_with_op_to_reg_id;
-        for (auto [ascii_value, config_pair] :
+        for (auto [ascii_value, dest_config_pair] :
              get_transitions(nfa.get_num_tags(), config_set, tag_id_with_op_to_reg_id))
         {
-            auto& [reg_ops, new_config_set]{config_pair};
+            auto& [reg_ops, dest_config_set]{dest_config_pair};
             auto [dest_state, optional_reg_map]{
-                    create_or_get_dfa_state(new_config_set, dfa_states, unexplored_sets)
+                    create_or_get_dfa_state(dest_config_set, dfa_states, unexplored_sets)
             };
             if (optional_reg_map.has_value()) {
                 reassign_transition_reg_ops(optional_reg_map.value(), reg_ops);
@@ -237,8 +237,8 @@ auto Dfa<TypedDfaState, TypedNfaState>::initialize_registers(
 ) -> void {
     register_handler.add_registers(2 * num_tags);
     for (uint32_t i{0}; i < num_tags; i++) {
-        initial_tag_id_to_reg_id[i] = i;
-        final_tag_id_to_reg_id[i] = num_tags + i;
+        initial_tag_id_to_reg_id.insert({i,i});
+        final_tag_id_to_reg_id.insert({i, num_tags + i});
     }
 }
 
@@ -289,21 +289,21 @@ auto Dfa<TypedDfaState, TypedNfaState>::try_get_mapping(
 
 template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::create_or_get_dfa_state(
-        ConfigurationSet const& new_config_set,
+        ConfigurationSet const& config_set,
         std::map<ConfigurationSet, TypedDfaState*>& dfa_states,
         std::queue<ConfigurationSet>& unexplored_sets
 ) -> std::pair<TypedDfaState*, std::optional<std::unordered_map<register_id_t, register_id_t>>> {
-    if (false == dfa_states.contains(new_config_set)) {
+    if (false == dfa_states.contains(config_set)) {
         for (auto const& [config_set_in_map, dfa_state] : dfa_states) {
-            auto const optional_reg_map{try_get_mapping(new_config_set, config_set_in_map)};
+            auto const optional_reg_map{try_get_mapping(config_set, config_set_in_map)};
             if (optional_reg_map.has_value()) {
                 return {dfa_state, optional_reg_map};
             }
         }
-        dfa_states.insert({new_config_set, new_state(new_config_set, m_tag_id_to_final_reg_id)});
-        unexplored_sets.push(new_config_set);
+        dfa_states.insert({config_set, new_state(config_set, m_tag_id_to_final_reg_id)});
+        unexplored_sets.push(config_set);
     }
-    return {dfa_states.at(new_config_set), std::nullopt};
+    return {dfa_states.at(config_set), std::nullopt};
 }
 
 template <typename TypedDfaState, typename TypedNfaState>

@@ -115,14 +115,14 @@ private:
     // TODO: Lexer currently enforces unique naming across capture groups. However, this limits use
     // cases. Possibly initialize this in the lexer and pass it in during construction.
     std::unordered_map<Capture const*, std::pair<tag_id_t, tag_id_t>> m_capture_to_tag_ids;
-    TypedNfaState* m_root;
+    TypedNfaState* m_root{nullptr};
     UniqueIdGenerator m_state_id_generator;
     UniqueIdGenerator m_tag_id_generator;
 };
 
 template <typename TypedNfaState>
-Nfa<TypedNfaState>::Nfa(std::vector<LexicalRule<TypedNfaState>> const& rules)
-        : m_root{new_state()} {
+Nfa<TypedNfaState>::Nfa(std::vector<LexicalRule<TypedNfaState>> const& rules) {
+    m_root = new_state();
     for (auto const& rule : rules) {
         rule.add_to_nfa(this);
     }
