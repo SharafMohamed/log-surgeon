@@ -237,7 +237,7 @@ auto Dfa<TypedDfaState, TypedNfaState>::initialize_registers(
 ) -> void {
     register_handler.add_registers(2 * num_tags);
     for (uint32_t i{0}; i < num_tags; i++) {
-        initial_tag_id_to_reg_id.insert({i,i});
+        initial_tag_id_to_reg_id.insert({i, i});
         final_tag_id_to_reg_id.insert({i, num_tags + i});
     }
 }
