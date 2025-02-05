@@ -5,6 +5,7 @@
 #include <optional>
 #include <set>
 #include <stack>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -24,7 +25,11 @@ public:
             : m_nfa_state{nfa_state},
               m_tag_id_to_reg_ids{std::move(tag_to_reg_ids)},
               m_history{std::move(tag_history)},
-              m_lookahead{std::move(tag_lookahead)} {}
+              m_lookahead{std::move(tag_lookahead)} {
+        if(nullptr == nfa_state) {
+            throw std::invalid_argument("Determinization config cannot have a null NFA state.");
+        }
+    }
 
     auto operator<(DetermizationConfiguration const& rhs) const -> bool {
         if (m_nfa_state->get_id() != rhs.m_nfa_state->get_id()) {

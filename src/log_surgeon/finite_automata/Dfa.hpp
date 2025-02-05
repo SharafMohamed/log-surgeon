@@ -216,9 +216,9 @@ auto Dfa<TypedDfaState, TypedNfaState>::generate(Nfa<TypedNfaState> const& nfa) 
         for (auto [ascii_value, config_pair] :
              get_transitions(nfa.get_num_tags(), config_set, tag_id_with_op_to_reg_id))
         {
-            auto& [reg_ops, config_set]{config_pair};
-            auto [dest_state,
-                  optional_reg_map]{create_or_get_dfa_state(config_set, dfa_states, unexplored_sets)
+            auto& [reg_ops, new_config_set]{config_pair};
+            auto [dest_state, optional_reg_map]{
+                    create_or_get_dfa_state(new_config_set, dfa_states, unexplored_sets)
             };
             if (optional_reg_map.has_value()) {
                 reassign_transition_reg_ops(optional_reg_map.value(), reg_ops);
