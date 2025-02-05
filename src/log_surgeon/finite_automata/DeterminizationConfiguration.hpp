@@ -26,7 +26,7 @@ public:
               m_tag_id_to_reg_ids{std::move(tag_to_reg_ids)},
               m_history{std::move(tag_history)},
               m_lookahead{std::move(tag_lookahead)} {
-        if(nullptr == nfa_state) {
+        if (nullptr == nfa_state) {
             throw std::invalid_argument("Determinization config cannot have a null NFA state.");
         }
     }
