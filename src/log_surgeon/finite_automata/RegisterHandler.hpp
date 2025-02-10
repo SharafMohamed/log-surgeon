@@ -2,7 +2,6 @@
 #define LOG_SURGEON_FINITE_AUTOMATA_REGISTER_HANDLER_HPP
 
 #include <cstddef>
-#include <cstdint>
 #include <vector>
 
 #include <log_surgeon/finite_automata/PrefixTree.hpp>
@@ -18,8 +17,6 @@ namespace log_surgeon::finite_automata {
  */
 class RegisterHandler {
 public:
-    using register_id_t = uint32_t;
-
     auto add_register(
             PrefixTree::id_t const prefix_tree_parent_node_id,
             PrefixTree::position_t const position
