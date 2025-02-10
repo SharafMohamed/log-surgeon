@@ -13,12 +13,12 @@
 
 #include <fmt/format.h>
 
+#include <log_surgeon/Aliases.hpp>
 #include <log_surgeon/finite_automata/SpontaneousTransition.hpp>
 #include <log_surgeon/finite_automata/StateType.hpp>
 #include <log_surgeon/finite_automata/UnicodeIntervalTree.hpp>
 
 namespace log_surgeon::finite_automata {
-
 template <StateType state_type>
 class NfaState;
 
