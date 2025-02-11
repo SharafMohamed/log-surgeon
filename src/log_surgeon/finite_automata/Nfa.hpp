@@ -15,6 +15,7 @@
 #include <fmt/core.h>
 #include <fmt/format.h>
 
+#include <log_surgeon/Aliases.hpp>
 #include <log_surgeon/Constants.hpp>
 #include <log_surgeon/finite_automata/Capture.hpp>
 #include <log_surgeon/finite_automata/TagOperation.hpp>
@@ -24,11 +25,11 @@
 
 namespace log_surgeon::finite_automata {
 /**
- * Represents a NFA(non-deterministic finite automata) for recognizing a language based on the set
- * of rules used during initialization. Currently use as an intermediate model for generating the
- * DFA.
+ * Represents a Non-Deterministic Finite Automaton (NFA) designed to recognize a language based on
+ * a set of rules provided during initialization. This class serves as an intermediate
+ * representation used for generating the corresponding Deterministic Finite Automaton (DFA).
  *
- * Currently we assume all capture groups have unique names.
+ * NOTE: It is assumed that all capture groups have unique names, even across different rules.
  * @tparam TypedNfaState
  */
 template <typename TypedNfaState>
@@ -98,24 +99,27 @@ public:
 
     [[nodiscard]] auto get_num_tags() const -> size_t { return m_tag_id_generator.get_num_ids(); }
 
-    [[nodiscard]] auto get_capture_to_tag_ids(
-    ) const -> std::unordered_map<Capture const*, std::pair<tag_id_t, tag_id_t>> {
-        return m_capture_to_tag_ids;
+    [[nodiscard]] auto get_capture_to_tag_id_pair(
+    ) const -> std::unordered_map<Capture const*, std::pair<tag_id_t, tag_id_t>> const& {
+        return m_capture_to_tag_id_pair;
     }
 
 private:
     /**
      * Creates start and end tags for the specified capture if they don't currently exist.
-     * @param capture
-     * @return The start and end tags corresponding to `capture`.
+     * @param capture The variable to be captured.
+     * @return A pair of tags:
+     * - The start tag for the `capture`.
+     * - The end tag for the `capture`.
      */
-    auto get_or_create_capture_tags(Capture const* capture) -> std::pair<tag_id_t, tag_id_t>;
+    [[nodiscard]] auto get_or_create_capture_tag_pair(Capture const* capture
+    ) -> std::pair<tag_id_t, tag_id_t>;
 
     std::vector<std::unique_ptr<TypedNfaState>> m_states;
     // TODO: Lexer currently enforces unique naming across capture groups. However, this limits use
     // cases. Possibly initialize this in the lexer and pass it in during construction.
-    std::unordered_map<Capture const*, std::pair<tag_id_t, tag_id_t>> m_capture_to_tag_ids;
-    TypedNfaState* m_root{nullptr};
+    std::unordered_map<Capture const*, std::pair<tag_id_t, tag_id_t>> m_capture_to_tag_id_pair;
+    TypedNfaState* m_root;
     UniqueIdGenerator m_state_id_generator;
     UniqueIdGenerator m_tag_id_generator;
 };
@@ -129,17 +133,14 @@ Nfa<TypedNfaState>::Nfa(std::vector<LexicalRule<TypedNfaState>> const& rules) {
 }
 
 template <typename TypedNfaState>
-auto Nfa<TypedNfaState>::get_or_create_capture_tags(Capture const* capture
+auto Nfa<TypedNfaState>::get_or_create_capture_tag_pair(Capture const* capture
 ) -> std::pair<tag_id_t, tag_id_t> {
-    auto const existing_tags{m_capture_to_tag_ids.find(capture)};
-    if (m_capture_to_tag_ids.end() == existing_tags) {
-        auto start_tag{m_tag_id_generator.generate_id()};
-        auto end_tag{m_tag_id_generator.generate_id()};
-        auto new_tags{std::make_pair(start_tag, end_tag)};
-        m_capture_to_tag_ids.emplace(capture, new_tags);
-        return new_tags;
+    if (false == m_capture_to_tag_id_pair.contains(capture)) {
+        auto const start_tag{m_tag_id_generator.generate_id()};
+        auto const end_tag{m_tag_id_generator.generate_id()};
+        m_capture_to_tag_id_pair.emplace(capture, std::make_pair(start_tag, end_tag));
     }
-    return existing_tags->second;
+    return m_capture_to_tag_id_pair.at(capture);
 }
 
 template <typename TypedNfaState>
@@ -165,7 +166,7 @@ auto Nfa<TypedNfaState>::new_state_for_negative_captures(
 ) -> TypedNfaState* {
     std::vector<tag_id_t> tags;
     for (auto const* capture : captures) {
-        auto [start_tag, end_tag]{get_or_create_capture_tags(capture)};
+        auto const [start_tag, end_tag]{get_or_create_capture_tag_pair(capture)};
         tags.push_back(start_tag);
         tags.push_back(end_tag);
     }
@@ -184,7 +185,7 @@ auto Nfa<TypedNfaState>::new_start_and_end_states_for_capture(
         Capture const* capture,
         TypedNfaState const* dest_state
 ) -> std::pair<TypedNfaState*, TypedNfaState*> {
-    auto [start_tag, end_tag]{get_or_create_capture_tags(capture)};
+    auto const [start_tag, end_tag]{get_or_create_capture_tag_pair(capture)};
     auto* start_state = new_state();
     m_root->add_spontaneous_transition(TagOperationType::Set, {start_tag}, start_state);
     m_states.emplace_back(std::make_unique<TypedNfaState>(
