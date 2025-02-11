@@ -58,7 +58,6 @@ private:
     [[nodiscard]] auto get_bfs_traversal_order() const -> std::vector<TypedDfaState const*>;
 
     std::vector<std::unique_ptr<TypedDfaState>> m_states;
-    RegisterHandler m_register_handler;
 };
 
 template <typename TypedDfaState, typename TypedNfaState>
@@ -94,7 +93,7 @@ Dfa<TypedDfaState, TypedNfaState>::Dfa(Nfa<TypedNfaState> const& nfa) {
         }
         auto next_dfa_state
                 = [&dfa_states, &create_dfa_state](StateSet const& set) -> TypedDfaState* {
-            TypedDfaState* state{nullptr};
+            TypedDfaState* state;
             auto it = dfa_states.find(set);
             if (it == dfa_states.end()) {
                 state = create_dfa_state(set);
