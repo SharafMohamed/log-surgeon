@@ -16,6 +16,7 @@
 #include <fmt/core.h>
 #include <fmt/format.h>
 
+#include <log_surgeon/Aliases.hpp>
 #include <log_surgeon/Constants.hpp>
 #include <log_surgeon/finite_automata/SpontaneousTransition.hpp>
 #include <log_surgeon/finite_automata/StateType.hpp>
