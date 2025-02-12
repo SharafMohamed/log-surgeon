@@ -49,8 +49,7 @@ template <typename TypedNfaState>
 auto SpontaneousTransition<TypedNfaState>::serialize(
         std::unordered_map<TypedNfaState const*, uint32_t> const& state_ids
 ) const -> std::optional<std::string> {
-    auto const state_id_it = state_ids.find(m_dest_state);
-    if (state_id_it == state_ids.end()) {
+    if (false == state_ids.contains(m_dest_state)) {
         return std::nullopt;
     }
     auto transformed_operations
@@ -58,7 +57,11 @@ auto SpontaneousTransition<TypedNfaState>::serialize(
                   return tag_op.serialize();
               });
 
-    return fmt::format("{}[{}]", state_id_it->second, fmt::join(transformed_operations, ","));
+    return fmt::format(
+            "{}[{}]",
+            state_ids.find(m_dest_state)->second,
+            fmt::join(transformed_operations, ",")
+    );
 }
 }  // namespace log_surgeon::finite_automata
 
