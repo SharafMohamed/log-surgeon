@@ -70,9 +70,9 @@ auto test_regex_ast(string_view var_schema, u32string const& expected_serialized
  * The lexer's symbol mappings are initialized based on the schema variables.
  * Assumes the lexer is in a clean state before initialization.
  * @param schema_ast Contains the variables to add to the lexer.
- * @param lexer Returns the initialized parser.
+ * @return The initialized lexer.
  */
-auto initialize_lexer(std::unique_ptr<SchemaAST> schema_ast, ByteLexer& lexer) -> void;
+auto initialize_lexer(std::unique_ptr<SchemaAST> schema_ast) -> ByteLexer;
 
 /**
  * Lexes the given input and verifies the output is a token for the given rule name, folowed by the
@@ -109,8 +109,10 @@ auto u32string_to_string(u32string const& u32_str) -> string {
     return converter.to_bytes(u32_str.data(), u32_str.data() + u32_str.size());
 }
 
-auto initialize_lexer(std::unique_ptr<SchemaAST> schema_ast, ByteLexer& lexer) -> void {
+auto initialize_lexer(std::unique_ptr<SchemaAST> schema_ast) -> ByteLexer {
     vector<uint32_t> const delimiters{' ', '\n'};
+
+    ByteLexer lexer;
     lexer.add_delimiters(delimiters);
 
     vector<uint32_t> lexer_delimiters;
@@ -146,6 +148,7 @@ auto initialize_lexer(std::unique_ptr<SchemaAST> schema_ast, ByteLexer& lexer) -
         lexer.add_rule(lexer.m_symbol_id.at(rule->m_name), std::move(rule->m_regex_ptr));
     }
     lexer.generate();
+    return lexer;
 }
 
 auto test_scanning_input(ByteLexer& lexer, std::string_view input, std::string_view rule_name)
@@ -345,8 +348,7 @@ TEST_CASE("Test Lexer without capture groups", "[Lexer]") {
     Schema schema;
     schema.add_variable(cVarSchema, -1);
 
-    ByteLexer lexer;
-    initialize_lexer(std::move(schema.release_schema_ast_ptr()), lexer);
+    ByteLexer lexer{initialize_lexer(std::move(schema.release_schema_ast_ptr()))};
 
     CAPTURE(cVarSchema);
     test_scanning_input(lexer, cTokenString1, cVarName);
@@ -365,8 +367,7 @@ TEST_CASE("Test Lexer with capture groups", "[Lexer]") {
     Schema schema;
     schema.add_variable(cVarSchema, -1);
 
-    ByteLexer lexer;
-    initialize_lexer(std::move(schema.release_schema_ast_ptr()), lexer);
+    ByteLexer lexer{initialize_lexer(std::move(schema.release_schema_ast_ptr()))};
 
     string const var_name{cVarName};
     REQUIRE(lexer.m_symbol_id.contains(var_name));
