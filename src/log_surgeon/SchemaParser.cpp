@@ -19,6 +19,8 @@
 #include <log_surgeon/finite_automata/NfaState.hpp>
 #include <log_surgeon/finite_automata/RegexAST.hpp>
 #include <log_surgeon/Lalr1Parser.hpp>
+#include <log_surgeon/NonTerminal.hpp>
+#include <log_surgeon/ParserAst.hpp>
 #include <log_surgeon/Reader.hpp>
 #include <log_surgeon/utils.hpp>
 
