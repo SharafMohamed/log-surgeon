@@ -15,12 +15,12 @@
 #include <fmt/core.h>
 #include <fmt/format.h>
 
-#include <log_surgeon/Aliases.hpp>
 #include <log_surgeon/Constants.hpp>
 #include <log_surgeon/finite_automata/Capture.hpp>
 #include <log_surgeon/finite_automata/TagOperation.hpp>
 #include <log_surgeon/finite_automata/UnicodeIntervalTree.hpp>
 #include <log_surgeon/LexicalRule.hpp>
+#include <log_surgeon/types.hpp>
 #include <log_surgeon/UniqueIdGenerator.hpp>
 
 namespace log_surgeon::finite_automata {
