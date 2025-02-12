@@ -13,6 +13,8 @@
 #include <tuple>
 #include <type_traits>
 
+#include <fmt/core.h>
+
 #include <log_surgeon/Constants.hpp>
 #include <log_surgeon/FileReader.hpp>
 #include <log_surgeon/finite_automata/Capture.hpp>
@@ -22,7 +24,6 @@
 #include <log_surgeon/NonTerminal.hpp>
 #include <log_surgeon/ParserAst.hpp>
 #include <log_surgeon/Reader.hpp>
-#include <log_surgeon/utils.hpp>
 
 using ParserValueRegex = log_surgeon::ParserValue<std::unique_ptr<
         log_surgeon::finite_automata::RegexAST<log_surgeon::finite_automata::ByteNfaState>>>;
@@ -71,12 +72,11 @@ auto SchemaParser::try_schema_file(string const& schema_file_path) -> unique_ptr
     if (ErrorCode::Success != error_code) {
         if (ErrorCode::Errno == error_code) {
             throw std::runtime_error(
-                    strfmt("Failed to read '%s', errno=%d", schema_file_path.c_str(), errno)
+                    fmt::format("Failed to read '{}', errno={}", schema_file_path, errno)
             );
         }
-        auto const code{static_cast<std::underlying_type_t<ErrorCode>>(error_code)};
         throw std::runtime_error(
-                strfmt("Failed to read '%s', error_code=%d", schema_file_path.c_str(), code)
+                fmt::format("Failed to read '{}', error_code={}", schema_file_path, error_code)
         );
     }
     SchemaParser sp;
