@@ -11,7 +11,6 @@
 #include <utility>
 #include <vector>
 
-#include <log_surgeon/Aliases.hpp>
 #include <log_surgeon/Constants.hpp>
 #include <log_surgeon/finite_automata/Dfa.hpp>
 #include <log_surgeon/finite_automata/DfaState.hpp>
@@ -22,6 +21,7 @@
 #include <log_surgeon/LexicalRule.hpp>
 #include <log_surgeon/ParserInputBuffer.hpp>
 #include <log_surgeon/Token.hpp>
+#include <log_surgeon/types.hpp>
 
 namespace log_surgeon {
 template <typename TypedNfaState, typename TypedDfaState>
