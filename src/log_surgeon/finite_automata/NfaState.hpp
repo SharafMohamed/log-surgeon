@@ -16,7 +16,6 @@
 #include <log_surgeon/finite_automata/SpontaneousTransition.hpp>
 #include <log_surgeon/finite_automata/StateType.hpp>
 #include <log_surgeon/finite_automata/UnicodeIntervalTree.hpp>
-#include <log_surgeon/types.hpp>
 
 namespace log_surgeon::finite_automata {
 template <StateType state_type>
