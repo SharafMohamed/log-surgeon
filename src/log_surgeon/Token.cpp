@@ -1,5 +1,6 @@
 #include "Token.hpp"
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 
@@ -18,6 +19,7 @@ auto Token::to_string() -> std::string {
 
 auto Token::to_string_view() -> std::string_view {
     if (m_start_pos <= m_end_pos) {
+        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
         return {m_buffer + m_start_pos, m_end_pos - m_start_pos};
     }
     if (m_wrap_around_string.empty()) {
