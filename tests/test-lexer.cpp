@@ -18,6 +18,7 @@
 #include <log_surgeon/Schema.hpp>
 #include <log_surgeon/SchemaParser.hpp>
 #include <log_surgeon/Token.hpp>
+#include <log_surgeon/types.hpp>
 
 using log_surgeon::lexers::ByteLexer;
 using log_surgeon::Schema;
@@ -44,8 +45,8 @@ using RegexASTMultiplicationByte = log_surgeon::finite_automata::RegexASTMultipl
         log_surgeon::finite_automata::ByteNfaState>;
 using RegexASTOrByte
         = log_surgeon::finite_automata::RegexASTOr<log_surgeon::finite_automata::ByteNfaState>;
+using log_surgeon::rule_id_t;
 using log_surgeon::SchemaVarAST;
-using log_surgeon::symbol_id_t;
 
 namespace {
 /**
@@ -86,7 +87,7 @@ auto test_scanning_input(ByteLexer& lexer, std::string_view input, std::string_v
  * @param map The map to serialize.
  * @return The serialized map.
  */
-auto serialize_id_symbol_map(unordered_map<symbol_id_t, string> const& map) -> string;
+auto serialize_id_symbol_map(unordered_map<rule_id_t, string> const& map) -> string;
 
 auto test_regex_ast(string_view const var_schema, u32string const& expected_serialized_ast)
         -> void {
@@ -152,7 +153,7 @@ auto create_lexer(std::unique_ptr<SchemaAST> schema_ast) -> ByteLexer {
 auto test_scanning_input(ByteLexer& lexer, std::string_view input, std::string_view rule_name)
         -> void {
     CAPTURE(input);
-    CAPTURE(symbol);
+    CAPTURE(rule_name);
 
     lexer.reset();
     CAPTURE(serialize_id_symbol_map(lexer.m_id_symbol));
@@ -186,7 +187,7 @@ auto test_scanning_input(ByteLexer& lexer, std::string_view input, std::string_v
     // TODO: Add verification of register values after implementing the DFA simulation.
 }
 
-auto serialize_id_symbol_map(unordered_map<symbol_id_t, string> const& map) -> string {
+auto serialize_id_symbol_map(unordered_map<rule_id_t, string> const& map) -> string {
     string serialized_map;
     for (auto const& [id, symbol] : map) {
         serialized_map += fmt::format("{}->{},", id, symbol);
