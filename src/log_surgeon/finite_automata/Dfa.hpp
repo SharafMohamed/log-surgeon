@@ -14,10 +14,6 @@
 #include <log_surgeon/Constants.hpp>
 #include <log_surgeon/finite_automata/DfaStatePair.hpp>
 #include <log_surgeon/finite_automata/Nfa.hpp>
-#include <log_surgeon/finite_automata/Register.hpp>
-#include <log_surgeon/finite_automata/RegisterHandler.hpp>
-#include <log_surgeon/finite_automata/RegisterOperation.hpp>
-#include <log_surgeon/finite_automata/TagOperation.hpp>
 
 namespace log_surgeon::finite_automata {
 template <typename TypedDfaState, typename TypedNfaState>
