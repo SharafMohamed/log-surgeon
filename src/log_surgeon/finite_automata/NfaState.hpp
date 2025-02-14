@@ -21,6 +21,7 @@
 #include <log_surgeon/finite_automata/StateType.hpp>
 #include <log_surgeon/finite_automata/TagOperation.hpp>
 #include <log_surgeon/finite_automata/UnicodeIntervalTree.hpp>
+#include <log_surgeon/types.hpp>
 
 namespace log_surgeon::finite_automata {
 template <StateType state_type>
@@ -46,11 +47,11 @@ public:
     NfaState(
             state_id_t const id,
             TagOperationType const op_type,
-            std::vector<tag_id_t> tag_ids,
+            std::vector<tag_id_t> const& tag_ids,
             NfaState const* dest_state
     )
             : m_id{id} {
-        add_spontaneous_transition(op_type, std::move(tag_ids), dest_state);
+        add_spontaneous_transition(op_type, tag_ids, dest_state);
     }
 
     auto add_spontaneous_transition(NfaState* dest_state) -> void {
@@ -171,8 +172,9 @@ auto NfaState<state_type>::add_interval(Interval interval, NfaState* dest_state)
 template <StateType state_type>
 auto NfaState<state_type>::serialize(std::unordered_map<NfaState const*, uint32_t> const& state_ids
 ) const -> std::optional<std::string> {
-    auto const accepting_tag_string
-            = m_accepting ? fmt::format("accepting_tag={},", m_matching_variable_id) : "";
+    auto const accepting_tag_string{
+            m_accepting ? fmt::format("accepting_tag={},", m_matching_variable_id) : ""
+    };
 
     std::vector<std::string> byte_transitions;
     for (uint32_t idx{0}; idx < cSizeOfByte; ++idx) {
@@ -185,7 +187,7 @@ auto NfaState<state_type>::serialize(std::unordered_map<NfaState const*, uint32_
 
     std::vector<std::string> serialized_spontaneous_transitions;
     for (auto const& spontaneous_transition : m_spontaneous_transitions) {
-        auto const optional_serialized_transition = spontaneous_transition.serialize(state_ids);
+        auto const optional_serialized_transition{spontaneous_transition.serialize(state_ids)};
         if (false == optional_serialized_transition.has_value()) {
             return std::nullopt;
         }
