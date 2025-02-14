@@ -7,12 +7,13 @@
 
 #include <fmt/core.h>
 
-namespace log_surgeon::finite_automata {
-using tag_id_t = uint32_t;
+#include <log_surgeon/types.hpp>
 
+namespace log_surgeon::finite_automata {
 enum class TagOperationType : uint8_t {
     Set,
-    Negate
+    Negate,
+    None
 };
 
 class TagOperation {
@@ -42,8 +43,8 @@ public:
                 return fmt::format("{}{}", m_tag_id, "p");
             case TagOperationType::Negate:
                 return fmt::format("{}{}", m_tag_id, "n");
-            default:
-                return fmt::format("{}{}", m_tag_id, "?");
+            case TagOperationType::None:
+                return "none";
         }
     }
 
