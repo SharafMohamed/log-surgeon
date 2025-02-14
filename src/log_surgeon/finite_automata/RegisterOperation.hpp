@@ -7,7 +7,7 @@
 
 #include <fmt/core.h>
 
-#include <log_surgeon/finite_automata/Register.hpp>
+#include <log_surgeon/types.hpp>
 
 namespace log_surgeon::finite_automata {
 enum class RegisterOperationType : uint8_t {
@@ -18,18 +18,18 @@ enum class RegisterOperationType : uint8_t {
 
 class RegisterOperation {
 public:
-    RegisterOperation(register_id_t const reg_id, RegisterOperationType const type)
+    RegisterOperation(reg_id_t const reg_id, RegisterOperationType const type)
             : m_reg_id{reg_id},
               m_type{type} {}
 
-    RegisterOperation(register_id_t const reg_id, register_id_t const copy_reg_id)
+    RegisterOperation(reg_id_t const reg_id, reg_id_t const copy_reg_id)
             : m_reg_id{reg_id},
               m_type{RegisterOperationType::Copy},
               m_copy_reg_id{copy_reg_id} {}
 
-    auto set_reg_id(register_id_t const reg_id) -> void { m_reg_id = reg_id; }
+    auto set_reg_id(reg_id_t const reg_id) -> void { m_reg_id = reg_id; }
 
-    [[nodiscard]] auto get_reg_id() const -> register_id_t { return m_reg_id; }
+    [[nodiscard]] auto get_reg_id() const -> reg_id_t { return m_reg_id; }
 
     [[nodiscard]] auto get_type() const -> RegisterOperationType { return m_type; }
 
@@ -53,9 +53,9 @@ public:
     }
 
 private:
-    register_id_t m_reg_id;
+    reg_id_t m_reg_id;
     RegisterOperationType m_type;
-    std::optional<register_id_t> m_copy_reg_id{std::nullopt};
+    std::optional<reg_id_t> m_copy_reg_id{std::nullopt};
 };
 }  // namespace log_surgeon::finite_automata
 
