@@ -12,7 +12,6 @@ set(
         ../src/log_surgeon/finite_automata/PrefixTree.cpp
         ../src/log_surgeon/finite_automata/PrefixTree.hpp
         ../src/log_surgeon/finite_automata/RegexAST.hpp
-        ../src/log_surgeon/finite_automata/Register.hpp
         ../src/log_surgeon/finite_automata/RegisterHandler.hpp
         ../src/log_surgeon/finite_automata/RegisterOperation.hpp
         ../src/log_surgeon/finite_automata/SpontaneousTransition.hpp
