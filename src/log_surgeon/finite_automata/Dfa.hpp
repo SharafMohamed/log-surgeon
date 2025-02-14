@@ -22,6 +22,9 @@
 #include <log_surgeon/finite_automata/DeterminizationConfiguration.hpp>
 #include <log_surgeon/finite_automata/DfaStatePair.hpp>
 #include <log_surgeon/finite_automata/Nfa.hpp>
+#include <log_surgeon/finite_automata/RegisterHandler.hpp>
+#include <log_surgeon/finite_automata/RegisterOperation.hpp>
+#include <log_surgeon/finite_automata/TagOperation.hpp>
 
 namespace log_surgeon::finite_automata {
 template <typename TypedDfaState, typename TypedNfaState>
@@ -49,7 +52,7 @@ public:
      */
     [[nodiscard]] auto get_intersect(Dfa const* dfa_in) const -> std::set<uint32_t>;
 
-    [[nodiscard]] auto get_tag_id_to_final_reg_id() const -> std::map<tag_id_t, register_id_t> {
+    [[nodiscard]] auto get_tag_id_to_final_reg_id() const -> std::map<tag_id_t, reg_id_t> {
         return m_tag_id_to_final_reg_id;
     }
 
@@ -72,8 +75,8 @@ private:
     static auto initialize_registers(
             size_t num_tags,
             RegisterHandler& register_handler,
-            std::map<tag_id_t, register_id_t>& initial_tag_id_to_reg_id,
-            std::map<tag_id_t, register_id_t>& final_tag_id_to_reg_id
+            std::map<tag_id_t, reg_id_t>& initial_tag_id_to_reg_id,
+            std::map<tag_id_t, reg_id_t>& final_tag_id_to_reg_id
     ) -> void;
 
     /**
@@ -87,7 +90,7 @@ private:
      * @return std::nullopt otherwise.
      */
     static auto try_get_mapping(ConfigurationSet const& lhs, ConfigurationSet const& rhs)
-            -> std::optional<std::unordered_map<register_id_t, register_id_t>>;
+            -> std::optional<std::unordered_map<reg_id_t, reg_id_t>>;
 
     /**
      * Creates a DFA state based on the given config set if the config does not already exist and
@@ -111,7 +114,7 @@ private:
             ConfigurationSet const& config_set,
             std::map<ConfigurationSet, TypedDfaState*>& dfa_states,
             std::queue<ConfigurationSet>& unexplored_sets
-    ) -> std::pair<TypedDfaState*, std::optional<std::unordered_map<register_id_t, register_id_t>>>;
+    ) -> std::pair<TypedDfaState*, std::optional<std::unordered_map<reg_id_t, reg_id_t>>>;
 
     /**
      * Determines the out-going transitions from the configuration set based on its NFA states.
@@ -126,7 +129,7 @@ private:
     auto get_transitions(
             size_t num_tags,
             ConfigurationSet const& config_set,
-            std::map<tag_id_t, register_id_t>& tag_id_with_op_to_reg_id
+            std::map<tag_id_t, reg_id_t>& tag_id_with_op_to_reg_id
     ) -> std::map<uint32_t, std::pair<std::vector<RegisterOperation>, ConfigurationSet>>;
 
     /**
@@ -143,7 +146,7 @@ private:
     auto assign_transition_reg_ops(
             size_t num_tags,
             ConfigurationSet& closure,
-            std::map<tag_id_t, register_id_t>& tag_id_with_op_to_reg_id
+            std::map<tag_id_t, reg_id_t>& tag_id_with_op_to_reg_id
     ) -> std::vector<RegisterOperation>;
 
     /**
@@ -156,7 +159,7 @@ private:
      * @param reg_ops Returns the updated vector of register operations.
      */
     static auto reassign_transition_reg_ops(
-            std::unordered_map<register_id_t, register_id_t> const& reg_map,
+            std::unordered_map<reg_id_t, reg_id_t> const& reg_map,
             std::vector<RegisterOperation>& reg_ops
     ) -> void;
 
@@ -169,7 +172,7 @@ private:
      */
     auto new_state(
             ConfigurationSet const& config_set,
-            std::map<tag_id_t, register_id_t> const& tag_id_to_final_reg_id
+            std::map<tag_id_t, reg_id_t> const& tag_id_to_final_reg_id
     ) -> TypedDfaState*;
 
     /**
@@ -179,7 +182,7 @@ private:
     [[nodiscard]] auto get_bfs_traversal_order() const -> std::vector<TypedDfaState const*>;
 
     std::vector<std::unique_ptr<TypedDfaState>> m_states;
-    std::map<tag_id_t, register_id_t> m_tag_id_to_final_reg_id;
+    std::map<tag_id_t, reg_id_t> m_tag_id_to_final_reg_id;
     RegisterHandler m_reg_handler;
 };
 
@@ -191,7 +194,7 @@ Dfa<TypedDfaState, TypedNfaState>::Dfa(Nfa<TypedNfaState> const& nfa) {
 // TODO: handle utf8 case in DFA generation.
 template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::generate(Nfa<TypedNfaState> const& nfa) -> void {
-    std::map<tag_id_t, register_id_t> initial_tag_id_to_reg_id;
+    std::map<tag_id_t, reg_id_t> initial_tag_id_to_reg_id;
     initialize_registers(
             nfa.get_num_tags(),
             m_reg_handler,
@@ -208,7 +211,7 @@ auto Dfa<TypedDfaState, TypedNfaState>::generate(Nfa<TypedNfaState> const& nfa) 
         auto config_set{unexplored_sets.front()};
         auto* dfa_state{dfa_states.at(config_set)};
         unexplored_sets.pop();
-        std::map<tag_id_t, register_id_t> tag_id_with_op_to_reg_id;
+        std::map<tag_id_t, reg_id_t> tag_id_with_op_to_reg_id;
         for (auto [ascii_value, dest_config_pair] :
              get_transitions(nfa.get_num_tags(), config_set, tag_id_with_op_to_reg_id))
         {
@@ -228,8 +231,8 @@ template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::initialize_registers(
         size_t const num_tags,
         RegisterHandler& register_handler,
-        std::map<tag_id_t, register_id_t>& initial_tag_id_to_reg_id,
-        std::map<tag_id_t, register_id_t>& final_tag_id_to_reg_id
+        std::map<tag_id_t, reg_id_t>& initial_tag_id_to_reg_id,
+        std::map<tag_id_t, reg_id_t>& final_tag_id_to_reg_id
 ) -> void {
     register_handler.add_registers(2 * num_tags);
     for (uint32_t i{0}; i < num_tags; i++) {
@@ -242,12 +245,12 @@ template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::try_get_mapping(
         ConfigurationSet const& lhs,
         ConfigurationSet const& rhs
-) -> std::optional<std::unordered_map<register_id_t, register_id_t>> {
+) -> std::optional<std::unordered_map<reg_id_t, reg_id_t>> {
     if (lhs.size() != rhs.size()) {
         return std::nullopt;
     }
-    std::unordered_map<register_id_t, register_id_t> reg_map_lhs_to_rhs;
-    std::unordered_map<register_id_t, register_id_t> reg_map_rhs_to_lhs;
+    std::unordered_map<reg_id_t, reg_id_t> reg_map_lhs_to_rhs;
+    std::unordered_map<reg_id_t, reg_id_t> reg_map_rhs_to_lhs;
     for (auto const& config_lhs : lhs) {
         bool found{false};
         for (auto const& config_rhs : rhs) {
@@ -288,7 +291,7 @@ auto Dfa<TypedDfaState, TypedNfaState>::create_or_get_dfa_state(
         ConfigurationSet const& config_set,
         std::map<ConfigurationSet, TypedDfaState*>& dfa_states,
         std::queue<ConfigurationSet>& unexplored_sets
-) -> std::pair<TypedDfaState*, std::optional<std::unordered_map<register_id_t, register_id_t>>> {
+) -> std::pair<TypedDfaState*, std::optional<std::unordered_map<reg_id_t, reg_id_t>>> {
     if (false == dfa_states.contains(config_set)) {
         for (auto const& [config_set_in_map, dfa_state] : dfa_states) {
             auto const optional_reg_map{try_get_mapping(config_set, config_set_in_map)};
@@ -306,7 +309,7 @@ template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::get_transitions(
         size_t const num_tags,
         ConfigurationSet const& config_set,
-        std::map<tag_id_t, register_id_t>& tag_id_with_op_to_reg_id
+        std::map<tag_id_t, reg_id_t>& tag_id_with_op_to_reg_id
 ) -> std::map<uint32_t, std::pair<std::vector<RegisterOperation>, ConfigurationSet>> {
     std::map<uint32_t, std::pair<std::vector<RegisterOperation>, ConfigurationSet>>
             ascii_transitions_map;
@@ -341,7 +344,7 @@ template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::assign_transition_reg_ops(
         size_t const num_tags,
         ConfigurationSet& closure,
-        std::map<tag_id_t, register_id_t>& tag_id_with_op_to_reg_id
+        std::map<tag_id_t, reg_id_t>& tag_id_with_op_to_reg_id
 ) -> std::vector<RegisterOperation> {
     std::vector<RegisterOperation> reg_ops;
     std::set<DetermizationConfiguration<TypedNfaState>> new_closure;
@@ -380,7 +383,7 @@ auto Dfa<TypedDfaState, TypedNfaState>::assign_transition_reg_ops(
 
 template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::reassign_transition_reg_ops(
-        std::unordered_map<register_id_t, register_id_t> const& reg_map,
+        std::unordered_map<reg_id_t, reg_id_t> const& reg_map,
         std::vector<RegisterOperation>& reg_ops
 ) -> void {
     for (auto const [old_reg_id, new_reg_id] : reg_map) {
@@ -404,7 +407,7 @@ auto Dfa<TypedDfaState, TypedNfaState>::reassign_transition_reg_ops(
 template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::new_state(
         ConfigurationSet const& config_set,
-        std::map<tag_id_t, register_id_t> const& tag_id_to_final_reg_id
+        std::map<tag_id_t, reg_id_t> const& tag_id_to_final_reg_id
 ) -> TypedDfaState* {
     m_states.emplace_back(std::make_unique<TypedDfaState>());
     auto* dfa_state = m_states.back().get();
