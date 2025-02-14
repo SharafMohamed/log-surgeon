@@ -9,8 +9,8 @@
 #include <utility>
 #include <vector>
 
-#include <log_surgeon/finite_automata/Register.hpp>
 #include <log_surgeon/finite_automata/TagOperation.hpp>
+#include <log_surgeon/types.hpp>
 
 namespace log_surgeon::finite_automata {
 template <typename TypedNfaState>
@@ -18,7 +18,7 @@ class DetermizationConfiguration {
 public:
     DetermizationConfiguration(
             TypedNfaState const* nfa_state,
-            std::map<tag_id_t, register_id_t> tag_to_reg_ids,
+            std::map<tag_id_t, reg_id_t> tag_to_reg_ids,
             std::vector<TagOperation> tag_history,
             std::vector<TagOperation> tag_lookahead
     )
@@ -66,13 +66,13 @@ public:
      */
     auto spontaneous_closure() const -> std::set<DetermizationConfiguration>;
 
-    auto set_reg_id(tag_id_t const tag_id, register_id_t const reg_id) {
+    auto set_reg_id(tag_id_t const tag_id, reg_id_t const reg_id) {
         m_tag_id_to_reg_ids[tag_id] = reg_id;
     }
 
     [[nodiscard]] auto get_state() const -> TypedNfaState const* { return m_nfa_state; }
 
-    [[nodiscard]] auto get_tag_id_to_reg_ids() const -> std::map<tag_id_t, register_id_t> {
+    [[nodiscard]] auto get_tag_id_to_reg_ids() const -> std::map<tag_id_t, reg_id_t> {
         return m_tag_id_to_reg_ids;
     }
 
@@ -99,7 +99,7 @@ public:
 
 private:
     TypedNfaState const* m_nfa_state;
-    std::map<tag_id_t, register_id_t> m_tag_id_to_reg_ids;
+    std::map<tag_id_t, reg_id_t> m_tag_id_to_reg_ids;
     std::vector<TagOperation> m_history;
     std::vector<TagOperation> m_lookahead;
 };
