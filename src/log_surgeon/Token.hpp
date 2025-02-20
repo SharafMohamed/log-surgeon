@@ -1,7 +1,7 @@
 #ifndef LOG_SURGEON_TOKEN_HPP
 #define LOG_SURGEON_TOKEN_HPP
 
-#include <set>
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -41,7 +41,7 @@ public:
     uint32_t m_buffer_size{0};
     uint32_t m_line{0};
     std::vector<uint32_t> const* m_type_ids_ptr{nullptr};
-    std::string m_wrap_around_string{};
+    std::string m_wrap_around_string;
 };
 }  // namespace log_surgeon
 
