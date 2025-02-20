@@ -29,7 +29,7 @@ TEST_CASE("Test NFA", "[NFA]") {
             + "Z|(A(?<letter>((?<letter1>(a)|(b))|(?<letter2>(c)|(d))))B(?"
               "<containerID>\\d+)C)"
     };
-    schema.add_variable(var_schema, -1);
+    schema.append_var(var_schema);
 
     auto const schema_ast = schema.release_schema_ast_ptr();
     auto& capture_rule_ast = dynamic_cast<SchemaVarAST&>(*schema_ast->m_schema_vars[0]);

@@ -81,7 +81,7 @@ auto test_scanning_input(ByteLexer& lexer, std::string_view input, std::string_v
 auto test_regex_ast(string_view const var_schema, u32string const& expected_serialized_ast)
         -> void {
     Schema schema;
-    schema.add_variable(var_schema, -1);
+    schema.append_var(var_schema);
 
     auto const schema_ast = schema.release_schema_ast_ptr();
     auto const* capture_rule_ast = dynamic_cast<SchemaVarAST*>(schema_ast->m_schema_vars[0].get());
@@ -172,7 +172,7 @@ TEST_CASE("Test the Schema class", "[Schema]") {
         Schema schema;
         string const var_name = "myNumber";
         string const var_schema = var_name + string(":") + string("123");
-        schema.add_variable(string_view(var_schema), -1);
+        schema.append_var(string_view(var_schema));
 
         auto const schema_ast = schema.release_schema_ast_ptr();
         REQUIRE(schema_ast->m_schema_vars.size() == 1);
@@ -190,7 +190,7 @@ TEST_CASE("Test the Schema class", "[Schema]") {
         Schema schema;
         std::string const var_name = "capture";
         string const var_schema = var_name + string(":") + string("u(?<uID>[0-9]+)");
-        schema.add_variable(var_schema, -1);
+        schema.append_var(var_schema);
 
         auto const schema_ast = schema.release_schema_ast_ptr();
         REQUIRE(schema_ast->m_schema_vars.size() == 1);
@@ -315,7 +315,7 @@ TEST_CASE("Test basic Lexer", "[Lexer]") {
     constexpr string_view cTokenString2{"234"};
 
     Schema schema;
-    schema.add_variable(cVarSchema, -1);
+    schema.append_var(cVarSchema);
 
     ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
 
@@ -332,7 +332,7 @@ TEST_CASE("Test Lexer with capture groups", "[Lexer]") {
     constexpr string_view cTokenString3{"123"};
 
     Schema schema;
-    schema.add_variable(cVarSchema, -1);
+    schema.append_var(cVarSchema);
 
     ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
 
