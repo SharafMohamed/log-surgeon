@@ -1,13 +1,20 @@
 #ifndef LOG_SURGEON_SCHEMA_PARSER_HPP
 #define LOG_SURGEON_SCHEMA_PARSER_HPP
 
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
+#include <log_surgeon/finite_automata/DfaState.hpp>
+#include <log_surgeon/finite_automata/NfaState.hpp>
+#include <log_surgeon/finite_automata/RegexAST.hpp>
 #include <log_surgeon/Lalr1Parser.hpp>
-#include <log_surgeon/NonTerminal.hpp>
 #include <log_surgeon/ParserAst.hpp>
+#include <log_surgeon/Reader.hpp>
 
 namespace log_surgeon {
 // ASTs used in SchemaParser AST
@@ -24,7 +31,7 @@ public:
         m_schema_vars.push_back(std::move(schema_var));
     }
 
-    auto insert_schema_var(std::unique_ptr<ParserAST> schema_var, uint32_t pos) -> void {
+    auto insert_schema_var(std::unique_ptr<ParserAST> schema_var, uint32_t const pos) -> void {
         m_schema_vars.insert(m_schema_vars.begin() + pos, std::move(schema_var));
     }
 
@@ -36,9 +43,9 @@ public:
 class IdentifierAST : public ParserAST {
 public:
     // Constructor
-    explicit IdentifierAST(char character) { m_name.push_back(character); }
+    explicit IdentifierAST(char const character) { m_name.push_back(character); }
 
-    auto add_character(char character) -> void { m_name.push_back(character); }
+    auto add_character(char const character) -> void { m_name.push_back(character); }
 
     std::string m_name;
 };
@@ -63,9 +70,9 @@ public:
 class DelimiterStringAST : public ParserAST {
 public:
     // Constructor
-    explicit DelimiterStringAST(uint32_t delimiter) { m_delimiters.push_back(delimiter); }
+    explicit DelimiterStringAST(uint32_t const delimiter) { m_delimiters.push_back(delimiter); }
 
-    auto add_delimiter(uint32_t delimiter) -> void { m_delimiters.push_back(delimiter); }
+    auto add_delimiter(uint32_t const delimiter) -> void { m_delimiters.push_back(delimiter); }
 
     std::vector<uint32_t> m_delimiters;
 };
@@ -73,6 +80,13 @@ public:
 class SchemaParser
         : public Lalr1Parser<finite_automata::ByteNfaState, finite_automata::ByteDfaState> {
 public:
+    virtual ~SchemaParser() = default;
+
+    SchemaParser(SchemaParser const& rhs) = delete;
+    auto operator=(SchemaParser const& rhs) -> SchemaParser& = delete;
+    SchemaParser(SchemaParser&& rhs) noexcept = default;
+    auto operator=(SchemaParser&& rhs) noexcept -> SchemaParser& = default;
+
     /**
      * File wrapper around generate_schema_ast()
      * @param schema_file_path
@@ -92,22 +106,7 @@ public:
     }
 
 private:
-    // Constructor
     SchemaParser();
-
-    /**
-     * A semantic rule that needs access to soft_reset()
-     * @param m
-     * @return std::unique_ptr<SchemaAST>
-     */
-    auto existing_schema_rule(NonTerminal* m) -> std::unique_ptr<SchemaAST>;
-
-    /**
-     * After lexing half of the buffer, reads into that half of the buffer and
-     * changes variables accordingly
-     * @param next_children_start
-     */
-    auto soft_reset(uint32_t& next_children_start) -> void;
 
     /**
      * Add all lexical rules needed for schema lexing

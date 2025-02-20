@@ -150,7 +150,7 @@ static auto existing_schema_rule_with_delimiter(NonTerminal* m) -> unique_ptr<Sc
     return schema_ast;
 }
 
-auto SchemaParser::existing_schema_rule(NonTerminal* m) -> unique_ptr<SchemaAST> {
+static auto existing_schema_rule(NonTerminal* m) -> unique_ptr<SchemaAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     std::unique_ptr<SchemaAST> schema_ast(dynamic_cast<SchemaAST*>(r1.release()));
     unique_ptr<ParserAST>& r2 = m->non_terminal_cast(2)->get_parser_ast();
@@ -499,7 +499,7 @@ auto SchemaParser::add_productions() -> void {
     add_production(
             "Schema",
             {"Schema", "PortableNewLine", "SchemaVar"},
-            std::bind(&SchemaParser::existing_schema_rule, this, std::placeholders::_1)
+            existing_schema_rule
     );
     add_production(
             "Schema",
