@@ -9,6 +9,21 @@
 namespace log_surgeon {
 class Token {
 public:
+    Token() = default;
+
+    Token(uint32_t const start_pos,
+          uint32_t const end_pos,
+          char const* buffer,
+          uint32_t const buffer_size,
+          uint32_t const line,
+          std::vector<uint32_t> const* type_ids_ptrs)
+            : m_start_pos(start_pos),
+              m_end_pos(end_pos),
+              m_buffer(buffer),
+              m_buffer_size(buffer_size),
+              m_line(line),
+              m_type_ids_ptr(type_ids_ptrs) {}
+
     /**
      * @return The token's value as a string
      */

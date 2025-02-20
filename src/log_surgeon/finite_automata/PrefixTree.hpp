@@ -84,7 +84,7 @@ private:
         position_t m_position;
     };
 
-    std::vector<Node> m_nodes;
+    std::vector<Node> m_nodes; 
 };
 }  // namespace log_surgeon::finite_automata
 
