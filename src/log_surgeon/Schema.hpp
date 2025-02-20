@@ -20,13 +20,20 @@ public:
 
     /**
      * Parses `var_schema` as if it were its own entire schema file. Then extracts the
+     * `SchemaVarAST` from the resulting `SchemaAST` and appends it to `m_schema_vars` in
+     * `m_schema_ast`.
+     * @param var_schema
+     */
+    auto append_var(std::string_view var_schema) const -> void;
+
+    /**
+     * Parses `var_schema` as if it were its own entire schema file. Then extracts the
      * `SchemaVarAST` from the resulting `SchemaAST` and adds it to `m_schema_vars` in
-     * `m_schema_ast`. Position in `m_schema_vars` is determined by the `priority` (`priority` == -1
-     * to set to lowest).
+     * `m_schema_ast`. Position in `m_schema_vars` is determined by the `priority`.
      * @param var_schema
      * @param priority
      */
-    auto add_variable(std::string_view var_schema, int priority) const -> void;
+    auto insert_var(std::string_view var_schema, uint32_t priority) const -> void;
 
     /* Work in progress API to modify a schema object
 

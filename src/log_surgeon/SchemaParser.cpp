@@ -131,7 +131,7 @@ static auto new_schema_rule(NonTerminal* /* m */) -> unique_ptr<SchemaAST> {
 static auto new_schema_rule_with_var(NonTerminal* m) -> unique_ptr<SchemaAST> {
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     unique_ptr<SchemaAST> schema_ast = make_unique<SchemaAST>();
-    schema_ast->add_schema_var(std::move(r1));
+    schema_ast->append_schema_var(std::move(r1));
     return schema_ast;
 }
 
@@ -154,7 +154,7 @@ auto SchemaParser::existing_schema_rule(NonTerminal* m) -> unique_ptr<SchemaAST>
     unique_ptr<ParserAST>& r1 = m->non_terminal_cast(0)->get_parser_ast();
     std::unique_ptr<SchemaAST> schema_ast(dynamic_cast<SchemaAST*>(r1.release()));
     unique_ptr<ParserAST>& r2 = m->non_terminal_cast(2)->get_parser_ast();
-    schema_ast->add_schema_var(std::move(r2));
+    schema_ast->append_schema_var(std::move(r2));
     // Can reset the buffers at this point and allow reading
     if (NonTerminal::m_next_children_start > cSizeOfAllChildren / 2) {
         NonTerminal::m_next_children_start = 0;
