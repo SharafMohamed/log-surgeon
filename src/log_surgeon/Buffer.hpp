@@ -1,11 +1,11 @@
 #ifndef LOG_SURGEON_BUFFER_HPP
 #define LOG_SURGEON_BUFFER_HPP
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
 #include <log_surgeon/Constants.hpp>
-#include <log_surgeon/ItemSet.hpp>
 #include <log_surgeon/Reader.hpp>
 
 namespace log_surgeon {
