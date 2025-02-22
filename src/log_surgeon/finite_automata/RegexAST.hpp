@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <gsl/pointers>
+#include <limits>
 #include <memory>
 #include <ranges>
 #include <stdexcept>
@@ -21,7 +22,6 @@
 
 #include <log_surgeon/Constants.hpp>
 #include <log_surgeon/finite_automata/Capture.hpp>
-#include <log_surgeon/finite_automata/TagOperation.hpp>
 #include <log_surgeon/finite_automata/UnicodeIntervalTree.hpp>
 
 namespace log_surgeon::finite_automata {
@@ -49,6 +49,11 @@ public:
     RegexAST() = default;
 
     virtual ~RegexAST() = default;
+
+    RegexAST(RegexAST const& rhs) = default;
+    auto operator=(RegexAST const& rhs) -> RegexAST& = default;
+    RegexAST(RegexAST&& rhs) noexcept = delete;
+    auto operator=(RegexAST&& rhs) noexcept -> RegexAST& = delete;
 
     /**
      * Used for cloning a unique_pointer of base type RegexAST
@@ -126,11 +131,6 @@ public:
     }
 
 protected:
-    RegexAST(RegexAST const& rhs) = default;
-    auto operator=(RegexAST const& rhs) -> RegexAST& = default;
-    RegexAST(RegexAST&& rhs) noexcept = delete;
-    auto operator=(RegexAST&& rhs) noexcept -> RegexAST& = delete;
-
     [[nodiscard]] auto serialize_negative_captures() const -> std::u32string {
         if (m_negative_captures.empty()) {
             return U"";
@@ -286,7 +286,7 @@ public:
      * @param end_state
      */
     auto add_to_nfa(Nfa<TypedNfaState>* nfa, TypedNfaState* end_state) const -> void override;
-    
+
     [[nodiscard]] auto serialize() const -> std::u32string override;
 
     [[nodiscard]] auto get_value() const -> uint32_t {
@@ -456,6 +456,10 @@ public:
               m_left(std::unique_ptr<RegexAST<TypedNfaState>>(rhs.m_left->clone())),
               m_right(std::unique_ptr<RegexAST<TypedNfaState>>(rhs.m_right->clone())) {}
 
+    auto operator=(RegexASTOr const& other) -> RegexASTOr& = default;
+    RegexASTOr(RegexASTOr&& rhs) noexcept = delete;
+    auto operator=(RegexASTOr&& other) noexcept -> RegexASTOr& = delete;
+
     /**
      * Used for cloning a unique_pointer of type RegexASTOr
      * @return RegexASTOr*
@@ -518,6 +522,10 @@ public:
             : RegexAST<TypedNfaState>(rhs),
               m_left(std::unique_ptr<RegexAST<TypedNfaState>>(rhs.m_left->clone())),
               m_right(std::unique_ptr<RegexAST<TypedNfaState>>(rhs.m_right->clone())) {}
+
+    auto operator=(RegexASTCat const& other) -> RegexASTCat& = default;
+    RegexASTCat(RegexASTCat&& rhs) noexcept = delete;
+    auto operator=(RegexASTCat&& other) noexcept -> RegexASTCat& = delete;
 
     /**
      * Used for cloning a unique_pointer of type RegexASTCat
@@ -583,6 +591,10 @@ public:
               m_operand(std::unique_ptr<RegexAST<TypedNfaState>>(rhs.m_operand->clone())),
               m_min(rhs.m_min),
               m_max(rhs.m_max) {}
+
+    auto operator=(RegexASTMultiplication const& other) -> RegexASTMultiplication& = default;
+    RegexASTMultiplication(RegexASTMultiplication&& rhs) noexcept = delete;
+    auto operator=(RegexASTMultiplication&& other) noexcept -> RegexASTMultiplication& = delete;
 
     /**
      * Used for cloning a unique_pointer of type RegexASTMultiplication
@@ -682,6 +694,10 @@ public:
               m_capture{std::make_unique<Capture>(*rhs.m_capture)} {
         RegexAST<TypedNfaState>::set_subtree_positive_captures(rhs.get_subtree_positive_captures());
     }
+
+    auto operator=(RegexASTCapture const& other) -> RegexASTCapture& = default;
+    RegexASTCapture(RegexASTCapture&& rhs) noexcept = delete;
+    auto operator=(RegexASTCapture&& other) noexcept -> RegexASTCapture& = delete;
 
     /**
      * Used for cloning a `unique_pointer` of type `RegexASTCapture`.
