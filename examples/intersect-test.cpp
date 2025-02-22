@@ -1,9 +1,16 @@
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <string>
+#include <utility>
 
+#include <log_surgeon/finite_automata/DfaState.hpp>
+#include <log_surgeon/finite_automata/NfaState.hpp>
 #include <log_surgeon/Lexer.hpp>
+#include <log_surgeon/LexicalRule.hpp>
+#include <log_surgeon/ParserAst.hpp>
 #include <log_surgeon/Schema.hpp>
+#include <log_surgeon/SchemaParser.hpp>
 
 using log_surgeon::finite_automata::ByteDfaState;
 using log_surgeon::finite_automata::ByteNfaState;
@@ -40,21 +47,21 @@ auto get_intersect_for_query(
         auto* schema_var_ast = dynamic_cast<SchemaVarAST*>(parser_ast.get());
         rules.emplace_back(0, std::move(schema_var_ast->m_regex_ptr));
     }
-    Nfa<ByteNfaState> nfa(std::move(rules));
-    Dfa<ByteDfaState> dfa2(std::move(nfa));
+    Nfa<ByteNfaState> nfa(rules);
+    Dfa<ByteDfaState> const dfa2(std::move(nfa));
     auto schema_types = dfa1.get_intersect(&dfa2);
     std::cout << search_string << ":";
     for (auto const& schema_type : schema_types) {
         std::cout << m_id_symbol[schema_type] << ",";
     }
-    std::cout << std::endl;
+    std::cout << "\n";
 }
 
 auto main() -> int {
     for (int i = 0; i < 2; i++) {
         log_surgeon::Schema schema;
         if (0 == i) {
-            std::cout << "--Schema1--" << std::endl;
+            std::cout << "--Schema1--" << "\n";
             schema.append_var("int:\\-{0,1}[0-9]+");
             schema.append_var("float:\\-{0,1}[0-9]+\\.[0-9]+");
             schema.append_var("hex:[a-fA-F]+");
@@ -62,7 +69,7 @@ auto main() -> int {
             schema.append_var("equals:.*=.*[a-zA-Z0-9].*");
             schema.append_var("logLevel:(INFO)|(DEBUG)|(WARN)|(ERROR)|(TRACE)|(FATAL)");
         } else {
-            std::cout << "--Schema2--" << std::endl;
+            std::cout << "--Schema2--" << "\n";
             schema.append_var("v1:1");
             schema.append_var("v2:2");
             schema.append_var("v3:3");
@@ -78,8 +85,8 @@ auto main() -> int {
             rules.emplace_back(m_id_symbol.size(), std::move(var_ast->m_regex_ptr));
             m_id_symbol[m_id_symbol.size()] = var_ast->m_name;
         }
-        Nfa<ByteNfaState> nfa(std::move(rules));
-        Dfa<ByteDfaState> dfa(std::move(nfa));
+        Nfa<ByteNfaState> nfa(rules);
+        Dfa<ByteDfaState> const dfa(std::move(nfa));
         get_intersect_for_query(m_id_symbol, dfa, "*1*");
         get_intersect_for_query(m_id_symbol, dfa, "*a*");
         get_intersect_for_query(m_id_symbol, dfa, "*a1*");

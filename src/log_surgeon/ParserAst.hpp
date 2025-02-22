@@ -11,6 +11,8 @@ class ParserValue;
 
 class ParserAST {
 public:
+    ParserAST() = default;
+
     virtual ~ParserAST() = 0;
 
     ParserAST(ParserAST const& rhs) = default;
