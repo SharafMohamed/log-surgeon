@@ -1,14 +1,11 @@
 #ifndef LOG_SURGEON_LALR1_PARSER_TPP
 #define LOG_SURGEON_LALR1_PARSER_TPP
 
-#include <cstddef>
-#include <functional>
-#include <iostream>
+#include <cstdint>
 #include <optional>
+#include <stack>
 
-#include <log_surgeon/Constants.hpp>
 #include <log_surgeon/NonTerminal.hpp>
-#include <log_surgeon/ItemSet.hpp>
 
 namespace log_surgeon {
 namespace {

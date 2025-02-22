@@ -1,27 +1,23 @@
 #ifndef LOG_SURGEON_LALR1_PARSER_HPP
 #define LOG_SURGEON_LALR1_PARSER_HPP
 
-#include <cassert>
-#include <cstddef>
 #include <cstdint>
-#include <functional>
-#include <list>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 #include <stack>
-#include <tuple>
-#include <type_traits>
+#include <string>
 #include <unordered_map>
-#include <variant>
 #include <vector>
 
-#include <log_surgeon/Constants.hpp>
+#include <log_surgeon/finite_automata/RegexAST.hpp>
 #include <log_surgeon/ItemSet.hpp>
-#include <log_surgeon/Lexer.hpp>
 #include <log_surgeon/NonTerminal.hpp>
 #include <log_surgeon/Parser.hpp>
+#include <log_surgeon/ParserInputBuffer.hpp>
 #include <log_surgeon/Production.hpp>
+#include <log_surgeon/Reader.hpp>
 #include <log_surgeon/types.hpp>
 
 namespace log_surgeon {
