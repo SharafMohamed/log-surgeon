@@ -1,6 +1,12 @@
 #include "Schema.hpp"
 
+#include <cstdint>
+#include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
+
+#include <log_surgeon/SchemaParser.hpp>
 
 namespace log_surgeon {
 Schema::Schema() {
@@ -15,8 +21,7 @@ auto Schema::append_var(std::string_view const var_schema) const -> void {
     m_schema_ast->append_schema_var(std::move(schema_ast->m_schema_vars[0]));
 }
 
-auto Schema::insert_var(std::string_view const var_schema, uint32_t const priority) const
-        -> void {
+auto Schema::insert_var(std::string_view const var_schema, uint32_t const priority) const -> void {
     auto const schema_ast = SchemaParser::try_schema_string(var_schema);
     m_schema_ast->insert_schema_var(std::move(schema_ast->m_schema_vars[0]), priority);
 }

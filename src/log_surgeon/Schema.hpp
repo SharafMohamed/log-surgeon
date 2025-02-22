@@ -1,8 +1,11 @@
 #ifndef LOG_SURGEON_SCHEMA_HPP
 #define LOG_SURGEON_SCHEMA_HPP
 
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
 
 #include <log_surgeon/SchemaParser.hpp>
 
