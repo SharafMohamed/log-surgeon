@@ -1,9 +1,10 @@
 #ifndef LOG_SURGEON_NONTERMINAL_HPP
 #define LOG_SURGEON_NONTERMINAL_HPP
 
-#include <cassert>
 #include <cstdint>
 #include <memory>
+#include <stdexcept>
+#include <string>
 
 #include <log_surgeon/ParserAst.hpp>
 #include <log_surgeon/Production.hpp>
@@ -26,7 +27,6 @@ public:
      * @return Token*
      */
     [[nodiscard]] auto token_cast(uint32_t i) const -> Token* {
-        assert(i < cSizeOfAllChildren);
         return &std::get<Token>(m_all_children[m_children_start + i]);
     }
 
@@ -38,7 +38,6 @@ public:
      * @return NonTerminal*
      */
     [[nodiscard]] auto non_terminal_cast(uint32_t i) const -> NonTerminal* {
-        assert(i < cSizeOfAllChildren);
         return &std::get<NonTerminal>(m_all_children[m_children_start + i]);
     }
 
@@ -54,7 +53,7 @@ public:
         auto* casted_value{dynamic_cast<T>(m_ast.get())};
         if (nullptr == casted_value) {
             throw std::invalid_argument(
-                    "Failed to cast `" + std::string(typeid(*m_ast).name()) + "` to `"
+                    "Failed to cast `" + std::string(typeid(m_ast).name()) + "` to `"
                     + std::string(typeid(T).name()) + "`."
             );
         }
@@ -66,7 +65,7 @@ public:
         auto* casted_value{dynamic_cast<T*>(m_ast.release())};
         if (nullptr == casted_value) {
             throw std::invalid_argument(
-                    "Failed to cast `" + std::string(typeid(*m_ast).name()) + "` to `"
+                    "Failed to cast `" + std::string(typeid(m_ast).name()) + "` to `"
                     + std::string(typeid(T).name()) + "`."
             );
         }
