@@ -9,6 +9,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <log_surgeon/Constants.hpp>
+#include <log_surgeon/finite_automata/NfaState.hpp>
 #include <log_surgeon/finite_automata/RegexAST.hpp>
 #include <log_surgeon/Lexer.hpp>
 #include <log_surgeon/ParserInputBuffer.hpp>
@@ -94,7 +95,7 @@ auto test_regex_ast(string_view const var_schema, u32string const& expected_seri
 
 auto u32string_to_string(u32string const& u32_str) -> string {
     wstring_convert<codecvt_utf8<char32_t>, char32_t> converter;
-    return converter.to_bytes(u32_str.data(), u32_str.data() + u32_str.size());
+    return converter.to_bytes(u32_str);
 }
 
 auto create_lexer(std::unique_ptr<SchemaAST> schema_ast) -> ByteLexer {
@@ -139,6 +140,7 @@ auto create_lexer(std::unique_ptr<SchemaAST> schema_ast) -> ByteLexer {
     return lexer;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 auto test_scanning_input(ByteLexer& lexer, std::string_view input, std::string_view rule_name)
         -> void {
     lexer.reset();
@@ -167,6 +169,7 @@ auto test_scanning_input(ByteLexer& lexer, std::string_view input, std::string_v
 }
 }  // namespace
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST_CASE("Test the Schema class", "[Schema]") {
     SECTION("Add a number variable to schema") {
         Schema schema;
@@ -183,6 +186,7 @@ TEST_CASE("Test the Schema class", "[Schema]") {
         auto& schema_var_ast = dynamic_cast<SchemaVarAST&>(*schema_var_ast_ptr);
         REQUIRE(var_name == schema_var_ast.m_name);
 
+        // NOLINTNEXTLINE(clang-diagnostic-unused-value)
         REQUIRE_NOTHROW([&]() { dynamic_cast<RegexASTCatByte&>(*schema_var_ast.m_regex_ptr); }());
     }
 
@@ -313,6 +317,7 @@ TEST_CASE("Test basic Lexer", "[Lexer]") {
     constexpr string_view cVarSchema{"myVar:123"};
     constexpr string_view cTokenString1{"123"};
     constexpr string_view cTokenString2{"234"};
+    constexpr string_view cUncaughtStringView{"$UncaughtString"};
 
     Schema schema;
     schema.append_var(cVarSchema);
@@ -320,9 +325,10 @@ TEST_CASE("Test basic Lexer", "[Lexer]") {
     ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
 
     test_scanning_input(lexer, cTokenString1, cVarName);
-    test_scanning_input(lexer, cTokenString2, log_surgeon::cTokenUncaughtString);
+    test_scanning_input(lexer, cTokenString2, cUncaughtStringView);
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST_CASE("Test Lexer with capture groups", "[Lexer]") {
     constexpr string_view cVarName{"myVar"};
     constexpr string_view cCaptureName{"uid"};
@@ -330,6 +336,7 @@ TEST_CASE("Test Lexer with capture groups", "[Lexer]") {
     constexpr string_view cTokenString1{"userID=123"};
     constexpr string_view cTokenString2{"userID=234"};
     constexpr string_view cTokenString3{"123"};
+    constexpr string_view cUncaughtStringView{"$UncaughtString"};
 
     Schema schema;
     schema.append_var(cVarSchema);
@@ -345,19 +352,22 @@ TEST_CASE("Test Lexer with capture groups", "[Lexer]") {
     auto const optional_capture_ids{lexer.get_capture_ids_from_rule_id(lexer.m_symbol_id.at(var_name
     ))};
     REQUIRE(optional_capture_ids.has_value());
-    REQUIRE(1 == optional_capture_ids.value().size());
-    REQUIRE(lexer.m_symbol_id.at(capture_name) == optional_capture_ids.value()[0]);
-
-    auto const optional_tag_id_pair{
-            lexer.get_tag_id_pair_from_capture_id(optional_capture_ids.value()[0])
-    };
-    REQUIRE(optional_tag_id_pair.has_value());
-    REQUIRE(std::make_pair(0U, 1U) == optional_tag_id_pair.value());
+    if (optional_capture_ids.has_value()) {
+        REQUIRE(1 == optional_capture_ids.value().size());
+        REQUIRE(lexer.m_symbol_id.at(capture_name) == optional_capture_ids.value()[0]);
+        auto const optional_tag_id_pair{
+                lexer.get_tag_id_pair_from_capture_id(optional_capture_ids.value()[0])
+        };
+        REQUIRE(optional_tag_id_pair.has_value());
+        if (optional_tag_id_pair.has_value()) {
+            REQUIRE(std::make_pair(0U, 1U) == optional_tag_id_pair.value());
+        }
+    }
 
     // TODO: Add check for `get_reg_id_from_tag_id` and `get_reg_ids_from_capture_id` when TDFA's
     // determinization is implemented.
 
     test_scanning_input(lexer, cTokenString1, cVarName);
-    test_scanning_input(lexer, cTokenString2, log_surgeon::cTokenUncaughtString);
-    test_scanning_input(lexer, cTokenString3, log_surgeon::cTokenUncaughtString);
+    test_scanning_input(lexer, cTokenString2, cUncaughtStringView);
+    test_scanning_input(lexer, cTokenString3, cUncaughtStringView);
 }
