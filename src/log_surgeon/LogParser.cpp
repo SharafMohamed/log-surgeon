@@ -1,14 +1,22 @@
 #include "LogParser.hpp"
 
-#include <filesystem>
-#include <iostream>
+#include <array>
+#include <cstdint>
 #include <memory>
 #include <optional>
+#include <stdexcept>
+#include <string>
+#include <utility>
 
 #include <log_surgeon/Constants.hpp>
 #include <log_surgeon/FileReader.hpp>
+#include <log_surgeon/finite_automata/DfaState.hpp>
+#include <log_surgeon/finite_automata/NfaState.hpp>
+#include <log_surgeon/Lexer.hpp>
+#include <log_surgeon/LogEvent.hpp>
 #include <log_surgeon/ParserAst.hpp>
 #include <log_surgeon/SchemaParser.hpp>
+#include <log_surgeon/Token.hpp>
 
 using std::make_unique;
 using std::runtime_error;
@@ -23,33 +31,30 @@ using finite_automata::ByteNfaState;
 using finite_automata::RegexAST;
 using finite_automata::RegexASTCat;
 using finite_automata::RegexASTGroup;
-using finite_automata::RegexASTInteger;
 using finite_automata::RegexASTLiteral;
-using finite_automata::RegexASTMultiplication;
-using finite_automata::RegexASTOr;
 
 LogParser::LogParser(string const& schema_file_path)
-        : LogParser::LogParser(SchemaParser::try_schema_file(schema_file_path)) {}
+        : LogParser(SchemaParser::try_schema_file(schema_file_path)) {}
 
-LogParser::LogParser(std::unique_ptr<SchemaAST> schema_ast) {
-    add_rules(std::move(schema_ast));
+LogParser::LogParser(std::unique_ptr<SchemaAST> const& schema_ast) {
+    add_rules(schema_ast);
     m_lexer.generate();
     m_log_event_view = make_unique<LogEventView>(*this);
 }
 
 auto LogParser::add_delimiters(unique_ptr<ParserAST> const& delimiters) -> void {
-    auto* delimiters_ptr = dynamic_cast<DelimiterStringAST*>(delimiters.get());
+    auto const* delimiters_ptr{dynamic_cast<DelimiterStringAST*>(delimiters.get())};
     if (delimiters_ptr != nullptr) {
         m_lexer.add_delimiters(delimiters_ptr->m_delimiters);
     }
 }
 
-auto LogParser::add_rules(std::unique_ptr<SchemaAST> schema_ast) -> void {
+auto LogParser::add_rules(std::unique_ptr<SchemaAST> const& schema_ast) -> void {
     for (auto const& delimiters : schema_ast->m_delimiters) {
         add_delimiters(delimiters);
     }
     vector<uint32_t> delimiters;
-    for (uint32_t i = 0; i < cSizeOfByte; i++) {
+    for (uint32_t i{0}; i < cSizeOfByte; i++) {
         if (m_lexer.is_delimiter(i)) {
             delimiters.push_back(i);
         }
@@ -60,13 +65,12 @@ auto LogParser::add_rules(std::unique_ptr<SchemaAST> schema_ast) -> void {
         throw runtime_error("When using --schema-path, \"delimiters:\" line must be used.");
     }
     add_token("newLine", '\n');
-    for (unique_ptr<ParserAST> const& parser_ast : schema_ast->m_schema_vars) {
-        auto* rule = dynamic_cast<SchemaVarAST*>(parser_ast.get());
+    for (auto const& parser_ast : schema_ast->m_schema_vars) {
+        auto* rule{dynamic_cast<SchemaVarAST*>(parser_ast.get())};
         if (rule->m_name == "timestamp") {
-            unique_ptr<RegexAST<ByteNfaState>> first_timestamp_regex_ast(rule->m_regex_ptr->clone()
-            );
-            unique_ptr<RegexASTLiteral<ByteNfaState>> r1
-                    = make_unique<RegexASTLiteral<ByteNfaState>>(utf8::cCharStartOfFile);
+            unique_ptr<RegexAST<ByteNfaState>> first_timestamp_regex_ast{rule->m_regex_ptr->clone()
+            };
+            auto r1{make_unique<RegexASTLiteral<ByteNfaState>>(utf8::cCharStartOfFile)};
             add_rule(
                     "firstTimestamp",
                     make_unique<RegexASTCat<ByteNfaState>>(
@@ -76,8 +80,7 @@ auto LogParser::add_rules(std::unique_ptr<SchemaAST> schema_ast) -> void {
             );
             unique_ptr<RegexAST<ByteNfaState>> newline_timestamp_regex_ast(rule->m_regex_ptr->clone(
             ));
-            unique_ptr<RegexASTLiteral<ByteNfaState>> r2
-                    = make_unique<RegexASTLiteral<ByteNfaState>>('\n');
+            auto r2{make_unique<RegexASTLiteral<ByteNfaState>>('\n')};
             add_rule(
                     "newLineTimestamp",
                     make_unique<RegexASTCat<ByteNfaState>>(
@@ -94,9 +97,9 @@ auto LogParser::add_rules(std::unique_ptr<SchemaAST> schema_ast) -> void {
         // check if regex contains a delimiter
         std::array<bool, cSizeOfUnicode> is_possible_input{};
         rule->m_regex_ptr->set_possible_inputs_to_true(is_possible_input);
-        bool contains_delimiter = false;
-        uint32_t delimiter_name = 0;
-        for (uint32_t delimiter : delimiters) {
+        bool contains_delimiter{false};
+        uint32_t delimiter_name{0};
+        for (auto const delimiter : delimiters) {
             if (is_possible_input[delimiter]) {
                 contains_delimiter = true;
                 delimiter_name = delimiter;
@@ -107,30 +110,30 @@ auto LogParser::add_rules(std::unique_ptr<SchemaAST> schema_ast) -> void {
         // Error out if non-timestamp pattern contains a delimiter
         if (contains_delimiter) {
             FileReader schema_reader;
-            ErrorCode error_code = schema_reader.try_open(schema_ast->m_file_path);
+            auto const error_code{schema_reader.try_open(schema_ast->m_file_path)};
             if (ErrorCode::Success != error_code) {
                 throw std::runtime_error(
                         schema_ast->m_file_path + ":" + to_string(rule->m_line_num + 1)
                         + ": error: '" + rule->m_name
-                        + "' has regex pattern which contains delimiter '" + char(delimiter_name)
-                        + "'.\n"
+                        + "' has regex pattern which contains delimiter '"
+                        + static_cast<char>(delimiter_name) + "'.\n"
                 );
             }
             // more detailed debugging based on looking at the file
             string line;
-            for (uint32_t i = 0; i <= rule->m_line_num; i++) {
+            for (uint32_t i{0}; i <= rule->m_line_num; ++i) {
                 schema_reader.try_read_to_delimiter('\n', false, false, line);
             }
-            uint32_t colon_pos = 0;
-            for (char i : line) {
+            uint32_t colon_pos{0};
+            for (auto const i : line) {
                 colon_pos++;
                 if (i == ':') {
                     break;
                 }
             }
-            string indent(10, ' ');
-            string spaces(colon_pos, ' ');
-            string arrows(line.size() - colon_pos, '^');
+            string const indent(10, ' ');
+            string const spaces(colon_pos, ' ');
+            string const arrows(line.size() - colon_pos, '^');
 
             throw std::runtime_error(
                     schema_ast->m_file_path + ":" + to_string(rule->m_line_num + 1) + ": error: '"
@@ -141,8 +144,9 @@ auto LogParser::add_rules(std::unique_ptr<SchemaAST> schema_ast) -> void {
         }
 
         // For log-specific lexing: modify variable regex to contain a delimiter at the start.
-        unique_ptr<RegexASTGroup<ByteNfaState>> delimiter_group
-                = make_unique<RegexASTGroup<ByteNfaState>>(RegexASTGroup<ByteNfaState>(delimiters));
+        auto delimiter_group{
+                make_unique<RegexASTGroup<ByteNfaState>>(RegexASTGroup<ByteNfaState>(delimiters))
+        };
         rule->m_regex_ptr = make_unique<RegexASTCat<ByteNfaState>>(
                 std::move(delimiter_group),
                 std::move(rule->m_regex_ptr)
@@ -158,32 +162,31 @@ auto LogParser::reset() -> void {
     m_lexer.prepend_start_of_file_char(m_input_buffer);
 }
 
-auto LogParser::parse_and_generate_metadata(LogParser::ParsingAction& parsing_action) -> ErrorCode {
-    ErrorCode error_code = parse(parsing_action);
+auto LogParser::parse_and_generate_metadata(ParsingAction& parsing_action) -> ErrorCode {
+    auto const error_code{parse(parsing_action)};
     if (ErrorCode::Success == error_code) {
         generate_log_event_view_metadata();
     }
     return error_code;
 }
 
-auto LogParser::parse(LogParser::ParsingAction& parsing_action) -> ErrorCode {
-    std::unique_ptr<LogParserOutputBuffer>& output_buffer = m_log_event_view->m_log_output_buffer;
+auto LogParser::parse(ParsingAction& parsing_action) -> ErrorCode {
+    auto const& output_buffer{m_log_event_view->m_log_output_buffer};
     if (0 == output_buffer->pos()) {
         output_buffer->set_has_delimiters(m_lexer.get_has_delimiters());
         Token next_token;
         if (m_has_start_of_log) {
             next_token = m_start_of_log_message;
         } else {
-            if (ErrorCode err = get_next_symbol(next_token); ErrorCode::Success != err) {
+            if (auto const err{get_next_symbol(next_token)}; ErrorCode::Success != err) {
                 return err;
             }
             if (false == output_buffer->has_timestamp()
-                && next_token.m_type_ids_ptr->at(0) == (uint32_t)SymbolId::TokenNewlineTimestamp)
+                && next_token.m_type_ids_ptr->at(0)
+                           == static_cast<uint32_t>(SymbolId::TokenNewlineTimestamp))
             {
-                // TODO: combine the below with found_start_of_next_message
-                // into 1 function
-                // Increment by 1 because the '\n' character is not part of the
-                // next log message
+                // TODO: combine the below with found_start_of_next_message into 1 function
+                // Increment by 1 because the '\n' character is not part of the next log message
                 m_start_of_log_message = next_token;
                 if (m_start_of_log_message.m_start_pos == m_start_of_log_message.m_buffer_size - 1)
                 {
@@ -203,14 +206,15 @@ auto LogParser::parse(LogParser::ParsingAction& parsing_action) -> ErrorCode {
                 return ErrorCode::Success;
             }
         }
-        if (next_token.m_type_ids_ptr->at(0) == (uint32_t)SymbolId::TokenEnd) {
+        if (next_token.m_type_ids_ptr->at(0) == static_cast<uint32_t>(SymbolId::TokenEnd)) {
             output_buffer->set_token(0, next_token);
             output_buffer->set_pos(1);
             parsing_action = ParsingAction::CompressAndFinish;
             return ErrorCode::Success;
         }
-        if (next_token.m_type_ids_ptr->at(0) == (uint32_t)SymbolId::TokenFirstTimestamp
-            || next_token.m_type_ids_ptr->at(0) == (uint32_t)SymbolId::TokenNewlineTimestamp)
+        if (next_token.m_type_ids_ptr->at(0) == static_cast<uint32_t>(SymbolId::TokenFirstTimestamp)
+            || next_token.m_type_ids_ptr->at(0)
+                       == static_cast<uint32_t>(SymbolId::TokenNewlineTimestamp))
         {
             output_buffer->set_has_timestamp(true);
             output_buffer->set_token(0, next_token);
@@ -225,22 +229,23 @@ auto LogParser::parse(LogParser::ParsingAction& parsing_action) -> ErrorCode {
 
     while (true) {
         Token next_token;
-        if (ErrorCode err = get_next_symbol(next_token); ErrorCode::Success != err) {
+        if (auto const err{get_next_symbol(next_token)}; ErrorCode::Success != err) {
             return err;
         }
         output_buffer->set_curr_token(next_token);
-        auto token_type = next_token.m_type_ids_ptr->at(0);
-        bool found_start_of_next_message
-                = (output_buffer->has_timestamp()
-                   && token_type == (uint32_t)SymbolId::TokenNewlineTimestamp)
-                  || (!output_buffer->has_timestamp() && next_token.get_char(0) == '\n'
-                      && token_type != (uint32_t)SymbolId::TokenNewline);
-        if (token_type == (uint32_t)SymbolId::TokenEnd) {
+        auto const token_type{next_token.m_type_ids_ptr->at(0)};
+        bool const found_start_of_next_message{
+                (output_buffer->has_timestamp()
+                 && token_type == static_cast<uint32_t>(SymbolId::TokenNewlineTimestamp))
+                || (!output_buffer->has_timestamp() && next_token.get_char(0) == '\n'
+                    && token_type != static_cast<uint32_t>(SymbolId::TokenNewline))
+        };
+        if (token_type == static_cast<uint32_t>(SymbolId::TokenEnd)) {
             parsing_action = ParsingAction::CompressAndFinish;
             return ErrorCode::Success;
         }
         if (false == output_buffer->has_timestamp()
-            && token_type == (uint32_t)SymbolId::TokenNewline)
+            && token_type == static_cast<uint32_t>(SymbolId::TokenNewline))
         {
             m_input_buffer.set_consumed_pos(output_buffer->get_curr_token().m_end_pos);
             output_buffer->advance_to_next_token();
@@ -257,7 +262,7 @@ auto LogParser::parse(LogParser::ParsingAction& parsing_action) -> ErrorCode {
                 m_start_of_log_message.m_start_pos++;
             }
             // make the last token of the current message the '\n' character
-            Token curr_token = output_buffer->get_curr_token();
+            auto curr_token{output_buffer->get_curr_token()};
             curr_token.m_end_pos = curr_token.m_start_pos + 1;
             curr_token.m_type_ids_ptr
                     = &Lexer<ByteNfaState, ByteDfaState>::cTokenUncaughtStringTypes;
@@ -287,14 +292,14 @@ auto LogParser::get_next_symbol(Token& token) -> ErrorCode {
     return m_lexer.scan(m_input_buffer, token);
 }
 
-auto LogParser::generate_log_event_view_metadata() -> void {
-    uint32_t start = 0;
+auto LogParser::generate_log_event_view_metadata() const -> void {
+    uint32_t start{0};
     if (false == m_log_event_view->m_log_output_buffer->has_timestamp()) {
         start = 1;
     }
     uint32_t first_newline_pos{0};
-    for (uint32_t i = start; i < m_log_event_view->m_log_output_buffer->pos(); i++) {
-        Token* token = &m_log_event_view->m_log_output_buffer->get_mutable_token(i);
+    for (auto i{start}; i < m_log_event_view->m_log_output_buffer->pos(); ++i) {
+        auto* token{&m_log_event_view->m_log_output_buffer->get_mutable_token(i)};
         m_log_event_view->add_token(token->m_type_ids_ptr->at(0), token);
         if (token->get_delimiter() == "\n" && first_newline_pos == 0) {
             first_newline_pos = i;

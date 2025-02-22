@@ -42,7 +42,7 @@ public:
      * @throw std::runtime_error from Lalr1Parser, RegexAST, or Lexer
      * describing the failure processing the schema AST.
      */
-    explicit LogParser(std::unique_ptr<SchemaAST> schema_ast);
+    explicit LogParser(const std::unique_ptr<SchemaAST> &schema_ast);
 
     virtual ~LogParser() = default;
 
@@ -144,7 +144,7 @@ private:
      * Generates metadata for last parsed log event indicating occurrences of
      * each variable and if the log event is multiline
      */
-    auto generate_log_event_view_metadata() -> void;
+    auto generate_log_event_view_metadata()const -> void;
 
     /**
      * Requests the next token from the lexer.
@@ -168,7 +168,7 @@ private:
      * @param schema_ast The AST from which parsing and lexing rules are
      * generated.
      */
-    auto add_rules(std::unique_ptr<SchemaAST> schema_ast) -> void;
+    auto add_rules(const std::unique_ptr<SchemaAST> &schema_ast) -> void;
 
     // TODO: move ownership of the buffer to the lexer
     ParserInputBuffer m_input_buffer;
