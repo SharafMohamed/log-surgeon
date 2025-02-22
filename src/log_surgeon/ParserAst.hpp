@@ -2,10 +2,8 @@
 #define LOG_SURGEON_PARSERAST_HPP
 
 #include <stdexcept>
+#include <string>
 #include <utility>
-
-#include <log_surgeon/finite_automata/NfaState.hpp>
-#include <log_surgeon/finite_automata/RegexAST.hpp>
 
 namespace log_surgeon {
 template <typename T>
@@ -14,6 +12,11 @@ class ParserValue;
 class ParserAST {
 public:
     virtual ~ParserAST() = 0;
+
+    ParserAST(ParserAST const& rhs) = default;
+    auto operator=(ParserAST const& rhs) -> ParserAST& = default;
+    ParserAST(ParserAST&& rhs) noexcept = delete;
+    auto operator=(ParserAST&& rhs) noexcept -> ParserAST& = delete;
 
     template <typename T>
     auto get() -> T& {
