@@ -1,24 +1,27 @@
 #ifndef LOG_SURGEON_LOG_PARSER_HPP
 #define LOG_SURGEON_LOG_PARSER_HPP
 
-#include <cassert>
-#include <iostream>
+#include <cstdint>
 #include <memory>
+#include <optional>
+#include <string>
 
 #include <log_surgeon/Constants.hpp>
-#include <log_surgeon/Lalr1Parser.hpp>
+#include <log_surgeon/finite_automata/DfaState.hpp>
+#include <log_surgeon/finite_automata/NfaState.hpp>
 #include <log_surgeon/LogEvent.hpp>
-#include <log_surgeon/LogParserOutputBuffer.hpp>
 #include <log_surgeon/Parser.hpp>
 #include <log_surgeon/ParserAst.hpp>
 #include <log_surgeon/ParserInputBuffer.hpp>
+#include <log_surgeon/Reader.hpp>
 #include <log_surgeon/SchemaParser.hpp>
+#include <log_surgeon/Token.hpp>
 
 namespace log_surgeon {
 // TODO: Compare c-array vs. vectors (its underlying array) for buffers
 class LogParser : public Parser<finite_automata::ByteNfaState, finite_automata::ByteDfaState> {
 public:
-    enum class ParsingAction {
+    enum class ParsingAction : uint8_t {
         None,
         Compress,
         CompressAndFinish
@@ -39,7 +42,14 @@ public:
      * @throw std::runtime_error from Lalr1Parser, RegexAST, or Lexer
      * describing the failure processing the schema AST.
      */
-    explicit LogParser(std::unique_ptr<log_surgeon::SchemaAST> schema_ast);
+    explicit LogParser(std::unique_ptr<SchemaAST> schema_ast);
+
+    virtual ~LogParser() = default;
+
+    LogParser(LogParser const& rhs) = delete;
+    auto operator=(LogParser const& rhs) -> LogParser& = delete;
+    LogParser(LogParser&& rhs) noexcept = delete;
+    auto operator=(LogParser&& rhs) noexcept -> LogParser& = delete;
 
     /**
      * Returns the parser to its initial state, clearing any existing
@@ -163,7 +173,7 @@ private:
     // TODO: move ownership of the buffer to the lexer
     ParserInputBuffer m_input_buffer;
     bool m_has_start_of_log{false};
-    Token m_start_of_log_message{};
+    Token m_start_of_log_message;
     std::unique_ptr<LogEventView> m_log_event_view{nullptr};
 };
 }  // namespace log_surgeon
