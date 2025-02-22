@@ -1,7 +1,11 @@
 #ifndef LOG_SURGEON_PARSERAST_HPP
 #define LOG_SURGEON_PARSERAST_HPP
 
+#include <stdexcept>
 #include <utility>
+
+#include <log_surgeon/finite_automata/NfaState.hpp>
+#include <log_surgeon/finite_automata/RegexAST.hpp>
 
 namespace log_surgeon {
 template <typename T>
@@ -13,7 +17,14 @@ public:
 
     template <typename T>
     auto get() -> T& {
-        return static_cast<ParserValue<T>*>(this)->m_value;
+        auto* parser_value{dynamic_cast<ParserValue<T>*>(this)};
+        if (nullptr == parser_value) {
+            throw std::invalid_argument(
+                    "Failed to cast `" + std::string(typeid(*this).name()) + "` to `"
+                    + std::string(typeid(T).name()) + "`."
+            );
+        }
+        return parser_value->m_value;
     }
 };
 

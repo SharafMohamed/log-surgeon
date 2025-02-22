@@ -47,7 +47,31 @@ public:
      * on the production/syntax-rule that was determined to have generated them)
      * @return std::unique_ptr<ParserAST>
      */
-    auto get_parser_ast() -> std::unique_ptr<ParserAST>& { return m_ast; }
+    auto get_ast() -> std::unique_ptr<ParserAST>& { return m_ast; }
+
+    template <typename T>
+    auto cast_ast() -> T {
+        auto* casted_value{dynamic_cast<T>(m_ast.get())};
+        if (nullptr == casted_value) {
+            throw std::invalid_argument(
+                    "Failed to cast `" + std::string(typeid(*m_ast).name()) + "` to `"
+                    + std::string(typeid(T).name()) + "`."
+            );
+        }
+        return casted_value;
+    }
+
+    template <typename T>
+    auto release_ast() -> std::unique_ptr<T> {
+        auto* casted_value{dynamic_cast<T*>(m_ast.release())};
+        if (nullptr == casted_value) {
+            throw std::invalid_argument(
+                    "Failed to cast `" + std::string(typeid(*m_ast).name()) + "` to `"
+                    + std::string(typeid(T).name()) + "`."
+            );
+        }
+        return std::unique_ptr<T>(casted_value);
+    }
 
     static MatchedSymbol m_all_children[];
     static uint32_t m_next_children_start;

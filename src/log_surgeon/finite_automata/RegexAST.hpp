@@ -286,8 +286,19 @@ public:
      * @param end_state
      */
     auto add_to_nfa(Nfa<TypedNfaState>* nfa, TypedNfaState* end_state) const -> void override;
-
+    
     [[nodiscard]] auto serialize() const -> std::u32string override;
+
+    [[nodiscard]] auto get_value() const -> uint32_t {
+        uint32_t value{0};
+        for (auto const digit : m_digits) {
+            if (value > (std::numeric_limits<uint32_t>::max() - digit) / 10) {
+                throw std::overflow_error("Value exceeds `uint32_t` range");
+            }
+            value = 10 * value + digit;
+        }
+        return value;
+    }
 
     [[nodiscard]] auto get_digits() const -> std::vector<uint32_t> const& { return m_digits; }
 

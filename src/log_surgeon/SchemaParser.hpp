@@ -17,11 +17,44 @@
 #include <log_surgeon/Reader.hpp>
 
 namespace log_surgeon {
-// ASTs used in SchemaParser AST
-class SchemaAST : public ParserAST {
+class DelimiterStringAST : public ParserAST {
 public:
     // Constructor
+    explicit DelimiterStringAST(uint32_t const delimiter) { m_delimiters.push_back(delimiter); }
+
+    auto add_delimiter(uint32_t const delimiter) -> void { m_delimiters.push_back(delimiter); }
+
+    std::vector<uint32_t> m_delimiters;
+};
+
+class SchemaVarAST : public ParserAST {
+public:
+    // Constructor
+    SchemaVarAST(
+            std::string name,
+            std::unique_ptr<finite_automata::RegexAST<finite_automata::ByteNfaState>> regex_ptr,
+            uint32_t line_num
+    )
+            : m_line_num(line_num),
+              m_name(std::move(name)),
+              m_regex_ptr(std::move(regex_ptr)) {}
+
+    uint32_t m_line_num;
+    std::string m_name;
+    std::unique_ptr<finite_automata::RegexAST<finite_automata::ByteNfaState>> m_regex_ptr;
+};
+
+class SchemaAST : public ParserAST {
+public:
     SchemaAST() = default;
+
+    explicit SchemaAST(std::unique_ptr<DelimiterStringAST> schema_var) {
+        add_delimiters(std::move(schema_var));
+    }
+    
+    explicit SchemaAST(std::unique_ptr<SchemaVarAST> schema_var) {
+        append_schema_var(std::move(schema_var));
+    }
 
     auto add_delimiters(std::unique_ptr<ParserAST> delimiters_in) -> void {
         m_delimiters.push_back(std::move(delimiters_in));
@@ -42,39 +75,13 @@ public:
 
 class IdentifierAST : public ParserAST {
 public:
-    // Constructor
+    IdentifierAST() = default;
+    
     explicit IdentifierAST(char const character) { m_name.push_back(character); }
 
     auto add_character(char const character) -> void { m_name.push_back(character); }
 
     std::string m_name;
-};
-
-class SchemaVarAST : public ParserAST {
-public:
-    // Constructor
-    SchemaVarAST(
-            std::string name,
-            std::unique_ptr<finite_automata::RegexAST<finite_automata::ByteNfaState>> regex_ptr,
-            uint32_t line_num
-    )
-            : m_line_num(line_num),
-              m_name(std::move(name)),
-              m_regex_ptr(std::move(regex_ptr)) {}
-
-    uint32_t m_line_num;
-    std::string m_name;
-    std::unique_ptr<finite_automata::RegexAST<finite_automata::ByteNfaState>> m_regex_ptr;
-};
-
-class DelimiterStringAST : public ParserAST {
-public:
-    // Constructor
-    explicit DelimiterStringAST(uint32_t const delimiter) { m_delimiters.push_back(delimiter); }
-
-    auto add_delimiter(uint32_t const delimiter) -> void { m_delimiters.push_back(delimiter); }
-
-    std::vector<uint32_t> m_delimiters;
 };
 
 class SchemaParser
