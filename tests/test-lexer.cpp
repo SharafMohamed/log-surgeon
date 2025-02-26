@@ -4,9 +4,12 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include <catch2/catch_test_macros.hpp>
+#include <fmt/core.h>
 
 #include <log_surgeon/Constants.hpp>
 #include <log_surgeon/finite_automata/NfaState.hpp>
@@ -16,6 +19,7 @@
 #include <log_surgeon/Schema.hpp>
 #include <log_surgeon/SchemaParser.hpp>
 #include <log_surgeon/Token.hpp>
+#include <log_surgeon/types.hpp>
 
 using log_surgeon::lexers::ByteLexer;
 using log_surgeon::Schema;
@@ -26,6 +30,7 @@ using std::make_unique;
 using std::string;
 using std::string_view;
 using std::u32string;
+using std::unordered_map;
 using std::vector;
 using std::wstring_convert;
 
@@ -41,6 +46,7 @@ using RegexASTMultiplicationByte = log_surgeon::finite_automata::RegexASTMultipl
         log_surgeon::finite_automata::ByteNfaState>;
 using RegexASTOrByte
         = log_surgeon::finite_automata::RegexASTOr<log_surgeon::finite_automata::ByteNfaState>;
+using log_surgeon::rule_id_t;
 using log_surgeon::SchemaVarAST;
 
 namespace {
@@ -78,6 +84,11 @@ auto test_regex_ast(string_view var_schema, u32string const& expected_serialized
  */
 auto test_scanning_input(ByteLexer& lexer, std::string_view input, std::string_view rule_name)
         -> void;
+/**
+ * @param map The map to serialize.
+ * @return The serialized map.
+ */
+auto serialize_id_symbol_map(unordered_map<rule_id_t, string> const& map) -> string;
 
 auto test_regex_ast(string_view const var_schema, u32string const& expected_serialized_ast)
         -> void {
@@ -143,7 +154,12 @@ auto create_lexer(std::unique_ptr<SchemaAST> schema_ast) -> ByteLexer {
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 auto test_scanning_input(ByteLexer& lexer, std::string_view input, std::string_view rule_name)
         -> void {
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access, misc-include-cleaner)
+    CAPTURE(input);
+    CAPTURE(rule_name);
+
     lexer.reset();
+    CAPTURE(serialize_id_symbol_map(lexer.m_id_symbol));
 
     log_surgeon::ParserInputBuffer input_buffer;
     string token_string{input};
@@ -152,6 +168,9 @@ auto test_scanning_input(ByteLexer& lexer, std::string_view input, std::string_v
 
     log_surgeon::Token token;
     auto error_code{lexer.scan(input_buffer, token)};
+    REQUIRE(nullptr != token.m_type_ids_ptr);
+    CAPTURE(token.to_string_view());
+    CAPTURE(*token.m_type_ids_ptr);
     REQUIRE(log_surgeon::ErrorCode::Success == error_code);
     REQUIRE(nullptr != token.m_type_ids_ptr);
     REQUIRE(1 == token.m_type_ids_ptr->size());
@@ -159,6 +178,9 @@ auto test_scanning_input(ByteLexer& lexer, std::string_view input, std::string_v
     REQUIRE(input == token.to_string_view());
 
     error_code = lexer.scan(input_buffer, token);
+    REQUIRE(nullptr != token.m_type_ids_ptr);
+    CAPTURE(token.to_string_view());
+    CAPTURE(*token.m_type_ids_ptr);
     REQUIRE(log_surgeon::ErrorCode::Success == error_code);
     REQUIRE(nullptr != token.m_type_ids_ptr);
     REQUIRE(1 == token.m_type_ids_ptr->size());
@@ -166,6 +188,14 @@ auto test_scanning_input(ByteLexer& lexer, std::string_view input, std::string_v
     REQUIRE(token.to_string_view().empty());
 
     // TODO: Add verification of register values after implementing the DFA simulation.
+}
+
+auto serialize_id_symbol_map(unordered_map<rule_id_t, string> const& map) -> string {
+    string serialized_map;
+    for (auto const& [id, symbol] : map) {
+        serialized_map += fmt::format("{}->{},", id, symbol);
+    }
+    return serialized_map;
 }
 }  // namespace
 
@@ -312,11 +342,12 @@ TEST_CASE("Test the Schema class", "[Schema]") {
     }
 }
 
-TEST_CASE("Test basic Lexer", "[Lexer]") {
+TEST_CASE("Test Lexer without capture groups", "[Lexer]") {
     constexpr string_view cVarName{"myVar"};
-    constexpr string_view cVarSchema{"myVar:123"};
-    constexpr string_view cTokenString1{"123"};
-    constexpr string_view cTokenString2{"234"};
+    constexpr string_view cVarSchema{"myVar:userID=123"};
+    constexpr string_view cTokenString1{"userID=123"};
+    constexpr string_view cTokenString2{"userID=234"};
+    constexpr string_view cTokenString3{"123"};
     constexpr string_view cUncaughtStringView{"$UncaughtString"};
 
     Schema schema;
@@ -324,8 +355,10 @@ TEST_CASE("Test basic Lexer", "[Lexer]") {
 
     ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
 
+    CAPTURE(cVarSchema);
     test_scanning_input(lexer, cTokenString1, cVarName);
     test_scanning_input(lexer, cTokenString2, cUncaughtStringView);
+    test_scanning_input(lexer, cTokenString3, cUncaughtStringView);
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -367,6 +400,7 @@ TEST_CASE("Test Lexer with capture groups", "[Lexer]") {
     // TODO: Add check for `get_reg_id_from_tag_id` and `get_reg_ids_from_capture_id` when TDFA's
     // determinization is implemented.
 
+    CAPTURE(cVarSchema);
     test_scanning_input(lexer, cTokenString1, cVarName);
     test_scanning_input(lexer, cTokenString2, cUncaughtStringView);
     test_scanning_input(lexer, cTokenString3, cUncaughtStringView);

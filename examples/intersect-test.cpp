@@ -28,7 +28,7 @@ using ByteLexicalRule = log_surgeon::LexicalRule<ByteNfaState>;
 
 auto get_intersect_for_query(
         std::map<uint32_t, std::string>& m_id_symbol,
-        Dfa<ByteDfaState> const& dfa1,
+        Dfa<ByteDfaState, ByteNfaState> const& dfa1,
         std::string const& search_string
 ) -> void {
     std::string processed_search_string;
@@ -47,8 +47,8 @@ auto get_intersect_for_query(
         auto* schema_var_ast = dynamic_cast<SchemaVarAST*>(parser_ast.get());
         rules.emplace_back(0, std::move(schema_var_ast->m_regex_ptr));
     }
-    Nfa<ByteNfaState> nfa(rules);
-    Dfa<ByteDfaState> const dfa2(std::move(nfa));
+    Nfa<ByteNfaState> const nfa(rules);
+    Dfa<ByteDfaState, ByteNfaState> const dfa2(nfa);
     auto schema_types = dfa1.get_intersect(&dfa2);
     std::cout << search_string << ":";
     for (auto const& schema_type : schema_types) {
@@ -85,8 +85,8 @@ auto main() -> int {
             rules.emplace_back(m_id_symbol.size(), std::move(var_ast->m_regex_ptr));
             m_id_symbol[m_id_symbol.size()] = var_ast->m_name;
         }
-        Nfa<ByteNfaState> nfa(rules);
-        Dfa<ByteDfaState> const dfa(std::move(nfa));
+        Nfa<ByteNfaState> const nfa(rules);
+        Dfa<ByteDfaState, ByteNfaState> const dfa(nfa);
         get_intersect_for_query(m_id_symbol, dfa, "*1*");
         get_intersect_for_query(m_id_symbol, dfa, "*a*");
         get_intersect_for_query(m_id_symbol, dfa, "*a1*");
