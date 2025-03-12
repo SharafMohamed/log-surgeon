@@ -12,7 +12,6 @@
 #include <log_surgeon/types.hpp>
 
 namespace log_surgeon {
-
 class NonTerminal {
 public:
     NonTerminal() : m_children_start(0), m_production(nullptr), m_ast(nullptr) {}
@@ -21,8 +20,7 @@ public:
 
     /**
      * Return the ith child's (body of production) MatchedSymbol as a Token.
-     * Note: only children are needed (and stored) for performing semantic
-     * actions (for the AST)
+     * Note: only children are needed (and stored) for performing semantic actions (for the AST)
      * @param i
      * @return Token*
      */
@@ -31,9 +29,8 @@ public:
     }
 
     /**
-     * Return the ith child's (body of production) MatchedSymbol as a
-     * NonTerminal. Note: only children are needed (and stored) for performing
-     * semantic actions (for the AST)
+     * Return the ith child's (body of production) MatchedSymbol as a NonTerminal. Note: only
+     * children are needed (and stored) for performing semantic actions (for the AST)
      * @param i
      * @return NonTerminal*
      */
@@ -42,8 +39,8 @@ public:
     }
 
     /**
-     * Return the AST that relates this non_terminal's children together (based
-     * on the production/syntax-rule that was determined to have generated them)
+     * Return the AST that relates this non_terminal's children together (based on the
+     * production/syntax-rule that was determined to have generated them)
      * @return std::unique_ptr<ParserAST>
      */
     auto get_ast() -> std::unique_ptr<ParserAST>& { return m_ast; }
