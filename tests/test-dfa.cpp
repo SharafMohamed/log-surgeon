@@ -29,7 +29,7 @@ TEST_CASE("Test Simple Untagged DFA", "[DFA]") {
     Schema schema;
     string const var_name{"capture"};
     string const var_schema{var_name + ":" + "userID=123"};
-    schema.add_variable(var_schema, -1);
+    schema.append_var(var_schema);
 
     auto const schema_ast = schema.release_schema_ast_ptr();
     auto& capture_rule_ast = dynamic_cast<SchemaVarAST&>(*schema_ast->m_schema_vars[0]);
@@ -76,7 +76,7 @@ TEST_CASE("Test Complex Untagged DFA", "[DFA]") {
     Schema schema;
     string const var_name{"capture"};
     string const var_schema{var_name + ":" + "Z|(A[abcd]B\\d+C)"};
-    schema.add_variable(var_schema, -1);
+    schema.append_var(var_schema);
 
     auto const schema_ast = schema.release_schema_ast_ptr();
     auto& capture_rule_ast = dynamic_cast<SchemaVarAST&>(*schema_ast->m_schema_vars[0]);
