@@ -1,7 +1,6 @@
 #ifndef LOG_SURGEON_PARSER_TYPES_HPP
 #define LOG_SURGEON_PARSER_TYPES_HPP
 
-#include <cassert>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -69,7 +68,7 @@ public:
 
     /**
      * Return the ith child's (body of production) MatchedSymbol as a Token.
-     * Note: only children are needed (and stored) for performing semantic actions (for the AST)
+     * Note: only children are needed (and stored) for performing semantic actions (for the AST).
      * @param i
      * @return Token*
      */
@@ -78,8 +77,8 @@ public:
     }
 
     /**
-     * Return the ith child's (body of production) MatchedSymbol as a NonTerminal. Note: only
-     * children are needed (and stored) for performing semantic actions (for the AST)
+     * Return the ith child's (body of production) MatchedSymbol as a NonTerminal.
+     * Note: only children are needed (and stored) for performing semantic actions (for the AST).
      * @param i
      * @return NonTerminal*
      */
@@ -126,11 +125,10 @@ public:
 };
 
 /**
- * Structure representing an item in a LALR1 state.
- * An item (1) is associated with a m_production and a single m_lookahead which
- * is an input symbol (character) that can follow the m_production, and (2)
- * tracks the current matching progress of its associated m_production, where
- * everything exclusively to the left of m_dot is already matched.
+ * Structure representing an item in a LALR1 state. An item (1) is associated with a m_production
+ * and a single m_lookahead which is an input symbol (character) that can follow the m_production,
+ * and (2) tracks the current matching progress of its associated m_production, where everything
+ * exclusively to the left of m_dot is already matched.
  */
 class Item {
 public:
@@ -170,11 +168,10 @@ public:
 };
 
 /**
- * Structure representing an LALR1 state, a collection of items.
- * The m_kernel is sufficient for fully representing the state, but m_closure is
- * useful for computations. m_next indicates what state (ItemSet) to transition
- * to based on the symbol received from the lexer m_actions is the action to
- * perform based on the symbol received from the lexer.
+ * Structure representing an LALR1 state, a collection of items. The m_kernel is sufficient for
+ * fully representing the state, but m_closure is useful for computations. m_next indicates what
+ * state (ItemSet) to transition to based on the symbol received from the lexer m_actions is the
+ * action to perform based on the symbol received from the lexer.
  */
 class ItemSet {
 public:
