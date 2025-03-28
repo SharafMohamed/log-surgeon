@@ -51,7 +51,7 @@ public:
     explicit SchemaAST(std::unique_ptr<DelimiterStringAST> schema_var) {
         add_delimiters(std::move(schema_var));
     }
-    
+
     explicit SchemaAST(std::unique_ptr<SchemaVarAST> schema_var) {
         append_schema_var(std::move(schema_var));
     }
@@ -76,7 +76,7 @@ public:
 class IdentifierAST : public ParserAST {
 public:
     IdentifierAST() = default;
-    
+
     explicit IdentifierAST(char const character) { m_name.push_back(character); }
 
     auto add_character(char const character) -> void { m_name.push_back(character); }
