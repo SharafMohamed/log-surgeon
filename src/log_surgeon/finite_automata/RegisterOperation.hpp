@@ -21,7 +21,9 @@ public:
     enum class Type : uint8_t {
         Copy,
         Set,
-        Negate
+        Append,
+        NegateSet,
+        NegateAppend
     };
 
     bool operator==(RegisterOperation const& rhs) const {
@@ -29,12 +31,20 @@ public:
                && m_copy_reg_id == rhs.m_copy_reg_id;
     }
 
-    static auto create_set_operation(reg_id_t const reg_id) -> RegisterOperation {
+    static auto
+    create_set_operation(reg_id_t const reg_id, bool const multi_valued) -> RegisterOperation {
+        if (multi_valued) {
+            return {reg_id, Type::Append};
+        }
         return {reg_id, Type::Set};
     }
 
-    static auto create_negate_operation(reg_id_t const reg_id) -> RegisterOperation {
-        return {reg_id, Type::Negate};
+    static auto
+    create_negate_operation(reg_id_t const reg_id, bool const multi_valued) -> RegisterOperation {
+        if (multi_valued) {
+            return {reg_id, Type::NegateAppend};
+        }
+        return {reg_id, Type::NegateSet};
     }
 
     static auto create_copy_operation(reg_id_t const dest_reg_id, reg_id_t const src_reg_id)
@@ -67,8 +77,12 @@ public:
                 return fmt::format("{}{}{}", m_reg_id, "c", m_copy_reg_id.value());
             case Type::Set:
                 return fmt::format("{}{}", m_reg_id, "p");
-            case Type::Negate:
+            case Type::Append:
+                return fmt::format("{}{}", m_reg_id, "p+");
+            case Type::NegateSet:
                 return fmt::format("{}{}", m_reg_id, "n");
+            case Type::NegateAppend:
+                return fmt::format("{}{}", m_reg_id, "n+");
             default:
                 return std::nullopt;
         }

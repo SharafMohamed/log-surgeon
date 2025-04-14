@@ -35,6 +35,10 @@ public:
         m_registers.at(dest_reg_id) = m_registers.at(source_reg_id);
     }
 
+    auto set_position(reg_id_t const reg_id, PrefixTree::position_t const position) -> void {
+        m_prefix_tree.set(reg_id, position);
+    }
+    
     auto append_position(reg_id_t const reg_id, PrefixTree::position_t const position) -> void {
         auto const node_id{m_registers.at(reg_id)};
         m_registers.at(reg_id) = m_prefix_tree.insert(node_id, position);

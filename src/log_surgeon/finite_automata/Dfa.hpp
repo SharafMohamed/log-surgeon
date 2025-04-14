@@ -262,10 +262,18 @@ auto Dfa<TypedDfaState, TypedNfaState>::process_char(
     for (auto const& reg_op : reg_ops) {
         switch (reg_op.get_type()) {
             case RegisterOperation::Type::Set: {
+                m_reg_handler.set_position(reg_op.get_reg_id(), curr_pos);
+                break;
+            }
+            case RegisterOperation::Type::Append: {
                 m_reg_handler.append_position(reg_op.get_reg_id(), curr_pos);
                 break;
             }
-            case RegisterOperation::Type::Negate: {
+            case RegisterOperation::Type::NegateSet: {
+                m_reg_handler.set_position(reg_op.get_reg_id(), -1);
+                break;
+            }
+            case RegisterOperation::Type::NegateAppend: {
                 m_reg_handler.append_position(reg_op.get_reg_id(), -1);
                 break;
             }
@@ -295,10 +303,18 @@ auto Dfa<TypedDfaState, TypedNfaState>::process_state(
     for (auto const& reg_op : reg_ops) {
         switch (reg_op.get_type()) {
             case RegisterOperation::Type::Set: {
+                m_reg_handler.set_position(reg_op.get_reg_id(), curr_pos);
+                break;
+            }
+            case RegisterOperation::Type::Append: {
                 m_reg_handler.append_position(reg_op.get_reg_id(), curr_pos);
                 break;
             }
-            case RegisterOperation::Type::Negate: {
+            case RegisterOperation::Type::NegateSet: {
+                m_reg_handler.set_position(reg_op.get_reg_id(), -1);
+                break;
+            }
+            case RegisterOperation::Type::NegateAppend: {
                 m_reg_handler.append_position(reg_op.get_reg_id(), -1);
                 break;
             }
@@ -502,9 +518,15 @@ auto Dfa<TypedDfaState, TypedNfaState>::assign_transition_reg_ops(
                     ))
                 {
                     if (TagOperationType::Set == tag_op.get_type()) {
-                        reg_ops.emplace_back(RegisterOperation::create_set_operation(reg_id));
+                        reg_ops.emplace_back(RegisterOperation::create_set_operation(
+                                reg_id,
+                                tag_op.is_multi_valued()
+                        ));
                     } else if (TagOperationType::Negate == tag_op.get_type()) {
-                        reg_ops.emplace_back(RegisterOperation::create_negate_operation(reg_id));
+                        reg_ops.emplace_back(RegisterOperation::create_negate_operation(
+                                reg_id,
+                                tag_op.is_multi_valued()
+                        ));
                     }
                 }
                 config.set_reg_id(tag_id, tag_id_with_op_to_reg_id.at(tag_id));
@@ -553,14 +575,17 @@ auto Dfa<TypedDfaState, TypedNfaState>::new_state(
             for (auto const [tag_id, final_reg_id] : tag_id_to_final_reg_id) {
                 auto const optional_tag_op{config.get_tag_lookahead(tag_id)};
                 if (optional_tag_op.has_value()) {
-                    if (TagOperationType::Set == optional_tag_op.value().get_type()) {
-                        dfa_state->add_accepting_op(
-                                RegisterOperation::create_set_operation(final_reg_id)
-                        );
-                    } else if (TagOperationType::Negate == optional_tag_op.value().get_type()) {
-                        dfa_state->add_accepting_op(
-                                RegisterOperation::create_negate_operation(final_reg_id)
-                        );
+                    auto const tag_op{optional_tag_op.value()};
+                    if (TagOperationType::Set == tag_op.get_type()) {
+                        dfa_state->add_accepting_op(RegisterOperation::create_set_operation(
+                                final_reg_id,
+                                tag_op.is_multi_valued()
+                        ));
+                    } else if (TagOperationType::Negate == tag_op.get_type()) {
+                        dfa_state->add_accepting_op(RegisterOperation::create_negate_operation(
+                                final_reg_id,
+                                tag_op.is_multi_valued()
+                        ));
                     }
                 } else {
                     // Note: `config` must have a reg for this tag so we just call `at`.

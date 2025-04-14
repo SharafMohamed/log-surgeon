@@ -198,12 +198,12 @@ TEST_CASE("Test Repetition Tagged DFA", "[DFA]") {
     string const expected_serialized_dfa{
             "0:byte_transitions={a-()->1}\n"
             "1:byte_transitions={=-()->2,a-()->1}\n"
-            "2:byte_transitions={1-(4p)->3}\n"
-            "3:byte_transitions={,-(5p)->4,1-()->3}\n"
+            "2:byte_transitions={1-(4p+)->3}\n"
+            "3:byte_transitions={,-(5p+)->4,1-()->3}\n"
             "4:accepting_tags={0},accepting_operations={2c4,3c5},byte_transitions={a-()->5}\n"
             "5:byte_transitions={=-()->6,a-()->5}\n"
-            "6:byte_transitions={1-(6p)->7}\n"
-            "7:byte_transitions={,-(5p,4c6)->4,1-()->7}\n"
+            "6:byte_transitions={1-(6p+)->7}\n"
+            "7:byte_transitions={,-(5p+,4c6)->4,1-()->7}\n"
     };
 
     // Compare expected and actual line-by-line
