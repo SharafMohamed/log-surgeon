@@ -42,25 +42,29 @@ auto Lexer<TypedNfaState, TypedDfaState>::flip_states(uint32_t old_storage_size)
 }
 
 template <typename TypedNfaState, typename TypedDfaState>
-auto Lexer<TypedNfaState, TypedDfaState>::scan(ParserInputBuffer& input_buffer, Token& token)
-        -> ErrorCode {
-    auto const* state = m_dfa->get_root();
+auto Lexer<TypedNfaState, TypedDfaState>::scan(ParserInputBuffer& input_buffer
+) -> std::pair<ErrorCode, std::optional<Token>> {
+    auto const* state{m_dfa->get_root()};
     if (m_asked_for_more_data) {
         state = m_prev_state;
+        m_dfa->set(m_prev_state);
         m_asked_for_more_data = false;
     } else {
+        m_dfa->reset();
         if (m_match) {
             m_match = false;
             m_last_match_pos = m_match_pos;
             m_last_match_line = m_match_line;
-            token
-                    = Token{m_start_pos,
-                            m_match_pos,
-                            input_buffer.storage().get_active_buffer(),
-                            input_buffer.storage().size(),
-                            m_match_line,
-                            m_type_ids};
-            return ErrorCode::Success;
+            Token token{
+                    m_start_pos,
+                    m_match_pos,
+                    input_buffer.storage().get_active_buffer(),
+                    input_buffer.storage().size(),
+                    m_match_line,
+                    m_type_ids
+            };
+            m_dfa->release_reg_handler(token);
+            return {ErrorCode::Success, token};
         }
         m_start_pos = input_buffer.storage().pos();
         m_match_pos = input_buffer.storage().pos();
@@ -68,28 +72,34 @@ auto Lexer<TypedNfaState, TypedDfaState>::scan(ParserInputBuffer& input_buffer, 
         m_type_ids = nullptr;
     }
     while (true) {
-        auto prev_byte_buf_pos = input_buffer.storage().pos();
+        auto prev_byte_buf_pos{input_buffer.storage().pos()};
         auto next_char{utf8::cCharErr};
-        if (auto const err = input_buffer.get_next_character(next_char); ErrorCode::Success != err)
-        {
+        if (auto const err{input_buffer.get_next_character(next_char)}; ErrorCode::Success != err) {
             m_asked_for_more_data = true;
             m_prev_state = state;
-            return err;
+            return {err, std::nullopt};
         }
-        if ((m_is_delimiter[next_char] || input_buffer.log_fully_consumed() || !m_has_delimiters)
+        if ((m_is_delimiter[next_char] || input_buffer.log_fully_consumed()
+             || false == m_has_delimiters)
             && state->is_accepting())
         {
+            m_dfa->process_state(state, prev_byte_buf_pos);
             m_match = true;
             m_type_ids = &(state->get_matching_variable_ids());
             m_match_pos = prev_byte_buf_pos;
             m_match_line = m_line;
         }
         auto const& optional_transition{state->get_transition(next_char)};
-        if (next_char == '\n') {
+        m_dfa->process_char(next_char, prev_byte_buf_pos);
+
+        if ('\n' == next_char) {
             m_line++;
-            if (m_has_delimiters && !m_match) {
+            // The newline character itself needs to be treated as a match for non-timestamped logs.
+            if (m_has_delimiters && false == m_match) {
                 auto const* dest_state{m_dfa->get_root()->get_transition(next_char)->get_dest_state(
                 )};
+                m_dfa->reset();
+                m_dfa->process_char(next_char, prev_byte_buf_pos);
                 m_match = true;
                 m_type_ids = &(dest_state->get_matching_variable_ids());
                 m_start_pos = prev_byte_buf_pos;
@@ -103,66 +113,71 @@ auto Lexer<TypedNfaState, TypedDfaState>::scan(ParserInputBuffer& input_buffer, 
                 input_buffer.set_pos(m_match_pos);
                 m_line = m_match_line;
                 if (m_last_match_pos != m_start_pos) {
-                    token
-                            = Token{m_last_match_pos,
-                                    m_start_pos,
-                                    input_buffer.storage().get_active_buffer(),
-                                    input_buffer.storage().size(),
-                                    m_last_match_line,
-                                    &cTokenUncaughtStringTypes};
-                    return ErrorCode::Success;
+                    Token token{
+                            m_last_match_pos,
+                            m_start_pos,
+                            input_buffer.storage().get_active_buffer(),
+                            input_buffer.storage().size(),
+                            m_last_match_line,
+                            &cTokenUncaughtStringTypes
+                    };
+                    return {ErrorCode::Success, token};
                 }
                 m_match = false;
                 m_last_match_pos = m_match_pos;
                 m_last_match_line = m_match_line;
-                token
-                        = Token{m_start_pos,
-                                m_match_pos,
-                                input_buffer.storage().get_active_buffer(),
-                                input_buffer.storage().size(),
-                                m_match_line,
-                                m_type_ids};
-                return ErrorCode::Success;
+                Token token{
+                        m_start_pos,
+                        m_match_pos,
+                        input_buffer.storage().get_active_buffer(),
+                        input_buffer.storage().size(),
+                        m_match_line,
+                        m_type_ids
+                };
+                m_dfa->release_reg_handler(token);
+                return {ErrorCode::Success, token};
             }
-            if (input_buffer.log_fully_consumed() && m_start_pos == input_buffer.storage().pos()) {
+            if (input_buffer.log_fully_consumed() && input_buffer.storage().pos() == m_start_pos) {
                 if (m_last_match_pos != m_start_pos) {
                     m_match_pos = input_buffer.storage().pos();
                     m_type_ids = &cTokenEndTypes;
                     m_match = true;
-                    token
-                            = Token{m_last_match_pos,
-                                    m_start_pos,
-                                    input_buffer.storage().get_active_buffer(),
-                                    input_buffer.storage().size(),
-                                    m_last_match_line,
-                                    &cTokenUncaughtStringTypes};
-                    return ErrorCode::Success;
+                    Token token{
+                            m_last_match_pos,
+                            m_start_pos,
+                            input_buffer.storage().get_active_buffer(),
+                            input_buffer.storage().size(),
+                            m_last_match_line,
+                            &cTokenUncaughtStringTypes
+                    };
+                    return {ErrorCode::Success, token};
                 }
-                token
-                        = Token{input_buffer.storage().pos(),
-                                input_buffer.storage().pos(),
-                                input_buffer.storage().get_active_buffer(),
-                                input_buffer.storage().size(),
-                                m_line,
-                                &cTokenEndTypes};
-                return ErrorCode::Success;
+                Token token{
+                        input_buffer.storage().pos(),
+                        input_buffer.storage().pos(),
+                        input_buffer.storage().get_active_buffer(),
+                        input_buffer.storage().size(),
+                        m_line,
+                        &cTokenEndTypes
+                };
+                return {ErrorCode::Success, token};
             }
-            // TODO: remove timestamp from m_is_fist_char so that m_is_delimiter
-            // check not needed
-            while (input_buffer.log_fully_consumed() == false
-                   && (m_is_first_char[next_char] == false || m_is_delimiter[next_char] == false))
+            // TODO: remove timestamp from m_is_fist_char so that m_is_delimiter check not needed
+            while (false == input_buffer.log_fully_consumed()
+                   && (false == m_is_first_char_of_a_variable[next_char]
+                       || false == m_is_delimiter[next_char]))
             {
                 prev_byte_buf_pos = input_buffer.storage().pos();
-                if (ErrorCode err = input_buffer.get_next_character(next_char);
-                    ErrorCode::Success != err)
+                if (auto err{input_buffer.get_next_character(next_char)}; ErrorCode::Success != err)
                 {
                     m_asked_for_more_data = true;
                     m_prev_state = state;
-                    return err;
+                    return {err, std::nullopt};
                 }
             }
             input_buffer.set_pos(prev_byte_buf_pos);
             m_start_pos = prev_byte_buf_pos;
+            m_dfa->reset();
             state = m_dfa->get_root();
             continue;
         }
@@ -414,9 +429,11 @@ void Lexer<TypedNfaState, TypedDfaState>::generate() {
 
     // TODO: DFA ignores captures. E.g., treats "capture:user=(?<user_id>\d+)" as "capture:user=\d+"
     m_dfa = std::make_unique<finite_automata::Dfa<TypedDfaState, TypedNfaState>>(nfa);
+    m_tag_to_final_reg_id = m_dfa->get_tag_id_to_final_reg_id();
+
     auto const* state = m_dfa->get_root();
     for (uint32_t i = 0; i < cSizeOfByte; i++) {
-        m_is_first_char[i] = state->get_transition(i).has_value();
+        m_is_first_char_of_a_variable[i] = state->get_transition(i).has_value();
     }
 }
 }  // namespace log_surgeon
