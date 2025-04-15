@@ -101,8 +101,8 @@ public:
         return m_tag_id_to_final_reg_id;
     }
 
-    auto assign_token_regs(Token& token, bool const is_reptition ) -> void {
-        token.assign_regs(m_reg_handler,  is_reptition);
+    auto assign_token_regs(Token& token, bool const is_reptition) -> void {
+        token.assign_regs(m_reg_handler, is_reptition);
     }
 
 private:
@@ -211,10 +211,15 @@ private:
      *
      * @param reg_map The register mapping used to update the register operations.
      * @param reg_ops Returns the updated vector of register operations.
+     * @param multi_valued A list specifying if each registers to be added is multi-valued.
+     *
+     * @throws std::runtime_error if copy assignment between single-valued and multi-valued
+     * registers.
      */
     static auto reassign_transition_reg_ops(
             std::unordered_map<reg_id_t, reg_id_t> const& reg_map,
-            std::vector<RegisterOperation>& reg_ops
+            std::vector<RegisterOperation>& reg_ops,
+            std::map<reg_id_t, bool> const& multi_valued
     ) -> void;
 
     /**
@@ -403,7 +408,11 @@ auto Dfa<TypedDfaState, TypedNfaState>::generate(Nfa<TypedNfaState> const& nfa) 
                     nfa.get_multi_valued()
             )};
             if (optional_reg_map.has_value()) {
-                reassign_transition_reg_ops(optional_reg_map.value(), reg_ops);
+                reassign_transition_reg_ops(
+                        optional_reg_map.value(),
+                        reg_ops,
+                        m_reg_handler.get_multi_valued()
+                );
             }
             dfa_state->add_byte_transition(ascii_value, {reg_ops, dest_state});
         }
@@ -611,26 +620,32 @@ auto Dfa<TypedDfaState, TypedNfaState>::assign_transition_reg_ops(
 template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::reassign_transition_reg_ops(
         std::unordered_map<reg_id_t, reg_id_t> const& reg_map,
-        std::vector<RegisterOperation>& reg_ops
+        std::vector<RegisterOperation>& reg_ops,
+        std::map<reg_id_t, bool> const& multi_valued
 ) -> void {
     for (auto const [old_reg_id, new_reg_id] : reg_map) {
         if (old_reg_id == new_reg_id) {
             continue;
         }
         bool is_existing_reg_op_mapping{false};
-        bool multi_valued;
         for (auto& reg_op : reg_ops) {
             if (reg_op.get_reg_id() == old_reg_id) {
                 reg_op.set_reg_id(new_reg_id);
                 is_existing_reg_op_mapping = true;
-                multi_valued = reg_op.is_multi_valued();
                 break;
             }
         }
         if (false == is_existing_reg_op_mapping) {
-            reg_ops.emplace_back(
-                    RegisterOperation::create_copy_operation(new_reg_id, old_reg_id, multi_valued)
-            );
+            if (multi_valued.at(old_reg_id) != multi_valued.at(new_reg_id)) {
+                throw std::runtime_error(
+                        "Trying to copy between single-valued and multi-valued registers."
+                );
+            }
+            reg_ops.emplace_back(RegisterOperation::create_copy_operation(
+                    new_reg_id,
+                    old_reg_id,
+                    multi_valued.at(old_reg_id)
+            ));
         }
     }
 }

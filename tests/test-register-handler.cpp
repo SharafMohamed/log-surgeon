@@ -27,32 +27,68 @@ auto handler_init(std::vector<bool> const& multi_valued_list) -> RegisterHandler
 TEST_CASE("`RegisterHandler` tests", "[RegisterHandler]") {
     constexpr size_t cRegId1{0};
     constexpr size_t cRegId2{1};
-    constexpr size_t cRegId3{1};
-    constexpr size_t cRegId4{1};
+    constexpr size_t cRegId3{2};
+    constexpr size_t cRegId4{3};
     constexpr position_t cAppendPos1{5};
     constexpr position_t cAppendPos2{10};
     constexpr position_t cAppendPos3{15};
     constexpr position_t cSetPos1{6};
     constexpr position_t cSetPos2{11};
-    std::vector const multi_valued{false, false, true, true};
+    std::vector const multi_valued{true, true, false, false};
 
     RegisterHandler handler{handler_init(multi_valued)};
 
     SECTION("Throws out of range correctly") {
-        RegisterHandler const empty_handler{handler_init({})};
+        constexpr size_t cInvalidRegId{10};
+        RegisterHandler empty_handler{handler_init({})};
 
+        // Test empty handler throws
         REQUIRE_THROWS_AS(empty_handler.get_reversed_positions(cRegId1), std::out_of_range);
-        REQUIRE_THROWS_AS(handler.copy_single_valued_register(cRegId2, cRegId1), std::out_of_range);
-        REQUIRE_THROWS_AS(handler.copy_multi_valued_register(cRegId2, cRegId1), std::out_of_range);
         REQUIRE_THROWS_AS(
-                handler.set_single_valued_position(cRegId1, cAppendPos1),
+                empty_handler.copy_single_valued_register(cRegId2, cRegId1),
                 std::out_of_range
         );
         REQUIRE_THROWS_AS(
-                handler.append_multi_valued_position(cRegId1, cAppendPos1),
+                empty_handler.copy_multi_valued_register(cRegId2, cRegId1),
                 std::out_of_range
         );
-        REQUIRE_THROWS_AS(handler.get_reversed_positions(cRegId1), std::out_of_range);
+        REQUIRE_THROWS_AS(
+                empty_handler.set_single_valued_position(cRegId1, cAppendPos1),
+                std::out_of_range
+        );
+        REQUIRE_THROWS_AS(
+                empty_handler.append_multi_valued_position(cRegId1, cAppendPos1),
+                std::out_of_range
+        );
+        REQUIRE_THROWS_AS(empty_handler.get_reversed_positions(cRegId1), std::out_of_range);
+
+        // Test initialized handler throws
+        REQUIRE_THROWS_AS(handler.get_reversed_positions(cInvalidRegId), std::out_of_range);
+        REQUIRE_THROWS_AS(
+                empty_handler.copy_single_valued_register(cInvalidRegId, cRegId1),
+                std::out_of_range
+        );
+        REQUIRE_THROWS_AS(
+                empty_handler.copy_multi_valued_register(cInvalidRegId, cRegId1),
+                std::out_of_range
+        );
+        REQUIRE_THROWS_AS(
+                empty_handler.copy_single_valued_register(cRegId1, cInvalidRegId),
+                std::out_of_range
+        );
+        REQUIRE_THROWS_AS(
+                empty_handler.copy_multi_valued_register(cRegId1, cInvalidRegId),
+                std::out_of_range
+        );
+        REQUIRE_THROWS_AS(
+                empty_handler.set_single_valued_position(cInvalidRegId, cAppendPos1),
+                std::out_of_range
+        );
+        REQUIRE_THROWS_AS(
+                empty_handler.append_multi_valued_position(cInvalidRegId, cAppendPos1),
+                std::out_of_range
+        );
+        REQUIRE_THROWS_AS(empty_handler.get_reversed_positions(cInvalidRegId), std::out_of_range);
     }
 
     SECTION("Initial multi-valued register is empty") {
@@ -80,7 +116,7 @@ TEST_CASE("`RegisterHandler` tests", "[RegisterHandler]") {
         REQUIRE(std::vector<position_t>{cAppendPos3, cAppendPos2, cAppendPos1}
                 == handler.get_reversed_positions(cRegId2));
 
-        handler.copy_multi_valued_register(cRegId4, cRegId3);
+        handler.copy_single_valued_register(cRegId4, cRegId3);
         REQUIRE(std::vector<position_t>{cSetPos2} == handler.get_reversed_positions(cRegId4));
     }
 
@@ -95,7 +131,6 @@ TEST_CASE("`RegisterHandler` tests", "[RegisterHandler]") {
 
         handler.set_single_valued_position(cRegId3, cNegativePos1);
         handler.set_single_valued_position(cRegId3, cNegativePos2);
-        REQUIRE(std::vector<position_t>{cNegativePos2}
-                == handler.get_reversed_positions(cRegId3));
+        REQUIRE(std::vector<position_t>{cNegativePos2} == handler.get_reversed_positions(cRegId3));
     }
 }
