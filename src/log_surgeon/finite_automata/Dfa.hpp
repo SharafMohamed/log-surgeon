@@ -101,10 +101,8 @@ public:
         return m_tag_id_to_final_reg_id;
     }
 
-    auto release_reg_handler(Token& token) -> void {
-        token.set_reg_handler(std::move(m_reg_handler));
-        m_reg_handler = RegisterHandler();
-        m_reg_handler.add_registers(m_num_regs);
+    auto assign_token_regs(Token& token, bool const is_reptition ) -> void {
+        token.assign_regs(m_reg_handler,  is_reptition);
     }
 
 private:
@@ -118,13 +116,13 @@ private:
     /**
      * Adds a register for tracking the initial and final value of each tag.
      *
-     * @param num_tags Number of tags in the NFA.
+     * @param multi_valued_list A list specifying if each registers to be added is multi-valued.
      * @param register_handler Returns the handler with the added registers.
      * @param initial_tag_id_to_reg_id Returns mapping of tag id to initial register id.
      * @param final_tag_id_to_reg_id Returns mapping of tag id to final register id.
      */
     static auto initialize_registers(
-            size_t num_tags,
+            std::vector<bool> multi_valued_list,
             RegisterHandler& register_handler,
             std::map<tag_id_t, reg_id_t>& initial_tag_id_to_reg_id,
             std::map<tag_id_t, reg_id_t>& final_tag_id_to_reg_id
@@ -153,6 +151,7 @@ private:
      * @param config_set The configuration set for which to create or get the DFA state.
      * @param dfa_states Returns an updated map of configuration sets to DFA states.
      * @param unexplored_sets Returns a queue of unexplored states.
+     * @param multi_valued A list specifying if each registers to be added is multi-valued.
      * @return If `new_config_set` is already in `dfa_states`, a pair containing:
      * - The existing DFA state.
      * - std::nullopt.
@@ -167,7 +166,8 @@ private:
     auto create_or_get_dfa_state(
             ConfigurationSet const& config_set,
             std::map<ConfigurationSet, TypedDfaState*>& dfa_states,
-            std::queue<ConfigurationSet>& unexplored_sets
+            std::queue<ConfigurationSet>& unexplored_sets,
+            std::vector<bool> multi_valued
     ) -> std::pair<TypedDfaState*, std::optional<std::unordered_map<reg_id_t, reg_id_t>>>;
 
     /**
@@ -222,11 +222,13 @@ private:
      *
      * @param config_set The set of configurations represented by this DFA state.
      * @param tag_id_to_final_reg_id Mapping from tag IDs to final register IDs.
+     * @param multi_valued A list specifying if each registers to be added is multi-valued.
      * @return A pointer to the new DFA state.
      */
     [[nodiscard]] auto new_state(
             ConfigurationSet const& config_set,
-            std::map<tag_id_t, reg_id_t> const& tag_id_to_final_reg_id
+            std::map<tag_id_t, reg_id_t> const& tag_id_to_final_reg_id,
+            std::vector<bool> multi_valued
     ) -> TypedDfaState*;
 
     /**
@@ -262,25 +264,40 @@ auto Dfa<TypedDfaState, TypedNfaState>::process_char(
     for (auto const& reg_op : reg_ops) {
         switch (reg_op.get_type()) {
             case RegisterOperation::Type::Set: {
-                m_reg_handler.set_position(reg_op.get_reg_id(), curr_pos);
+                m_reg_handler.set_single_valued_position(reg_op.get_reg_id(), curr_pos);
                 break;
             }
             case RegisterOperation::Type::Append: {
-                m_reg_handler.append_position(reg_op.get_reg_id(), curr_pos);
+                m_reg_handler.append_multi_valued_position(reg_op.get_reg_id(), curr_pos);
                 break;
             }
             case RegisterOperation::Type::NegateSet: {
-                m_reg_handler.set_position(reg_op.get_reg_id(), -1);
+                m_reg_handler.set_single_valued_position(reg_op.get_reg_id(), -1);
                 break;
             }
             case RegisterOperation::Type::NegateAppend: {
-                m_reg_handler.append_position(reg_op.get_reg_id(), -1);
+                m_reg_handler.append_multi_valued_position(reg_op.get_reg_id(), -1);
                 break;
             }
-            case RegisterOperation::Type::Copy: {
+            case RegisterOperation::Type::CopySet: {
                 auto copy_reg_id_optional{reg_op.get_copy_reg_id()};
                 if (copy_reg_id_optional.has_value()) {
-                    m_reg_handler.copy_register(reg_op.get_reg_id(), copy_reg_id_optional.value());
+                    m_reg_handler.copy_single_valued_register(
+                            reg_op.get_reg_id(),
+                            copy_reg_id_optional.value()
+                    );
+                } else {
+                    throw std::logic_error("Copy operation does not specify register to copy.");
+                }
+                break;
+            }
+            case RegisterOperation::Type::CopyAppend: {
+                auto copy_reg_id_optional{reg_op.get_copy_reg_id()};
+                if (copy_reg_id_optional.has_value()) {
+                    m_reg_handler.copy_multi_valued_register(
+                            reg_op.get_reg_id(),
+                            copy_reg_id_optional.value()
+                    );
                 } else {
                     throw std::logic_error("Copy operation does not specify register to copy.");
                 }
@@ -303,25 +320,40 @@ auto Dfa<TypedDfaState, TypedNfaState>::process_state(
     for (auto const& reg_op : reg_ops) {
         switch (reg_op.get_type()) {
             case RegisterOperation::Type::Set: {
-                m_reg_handler.set_position(reg_op.get_reg_id(), curr_pos);
+                m_reg_handler.set_single_valued_position(reg_op.get_reg_id(), curr_pos);
                 break;
             }
             case RegisterOperation::Type::Append: {
-                m_reg_handler.append_position(reg_op.get_reg_id(), curr_pos);
+                m_reg_handler.append_multi_valued_position(reg_op.get_reg_id(), curr_pos);
                 break;
             }
             case RegisterOperation::Type::NegateSet: {
-                m_reg_handler.set_position(reg_op.get_reg_id(), -1);
+                m_reg_handler.set_single_valued_position(reg_op.get_reg_id(), -1);
                 break;
             }
             case RegisterOperation::Type::NegateAppend: {
-                m_reg_handler.append_position(reg_op.get_reg_id(), -1);
+                m_reg_handler.append_multi_valued_position(reg_op.get_reg_id(), -1);
                 break;
             }
-            case RegisterOperation::Type::Copy: {
+            case RegisterOperation::Type::CopySet: {
                 auto copy_reg_id_optional{reg_op.get_copy_reg_id()};
                 if (copy_reg_id_optional.has_value()) {
-                    m_reg_handler.copy_register(reg_op.get_reg_id(), copy_reg_id_optional.value());
+                    m_reg_handler.copy_single_valued_register(
+                            reg_op.get_reg_id(),
+                            copy_reg_id_optional.value()
+                    );
+                } else {
+                    throw std::logic_error("Copy operation does not specify register to copy.");
+                }
+                break;
+            }
+            case RegisterOperation::Type::CopyAppend: {
+                auto copy_reg_id_optional{reg_op.get_copy_reg_id()};
+                if (copy_reg_id_optional.has_value()) {
+                    m_reg_handler.copy_multi_valued_register(
+                            reg_op.get_reg_id(),
+                            copy_reg_id_optional.value()
+                    );
                 } else {
                     throw std::logic_error("Copy operation does not specify register to copy.");
                 }
@@ -339,7 +371,7 @@ template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::generate(Nfa<TypedNfaState> const& nfa) -> void {
     std::map<tag_id_t, reg_id_t> initial_tag_id_to_reg_id;
     initialize_registers(
-            nfa.get_num_tags(),
+            nfa.get_multi_valued(),
             m_reg_handler,
             initial_tag_id_to_reg_id,
             m_tag_id_to_final_reg_id
@@ -349,7 +381,12 @@ auto Dfa<TypedDfaState, TypedNfaState>::generate(Nfa<TypedNfaState> const& nfa) 
 
     std::map<ConfigurationSet, TypedDfaState*> dfa_states;
     std::queue<ConfigurationSet> unexplored_sets;
-    create_or_get_dfa_state(initial_config.spontaneous_closure(), dfa_states, unexplored_sets);
+    create_or_get_dfa_state(
+            initial_config.spontaneous_closure(),
+            dfa_states,
+            unexplored_sets,
+            nfa.get_multi_valued()
+    );
     while (false == unexplored_sets.empty()) {
         auto config_set{unexplored_sets.front()};
         auto* dfa_state{dfa_states.at(config_set)};
@@ -359,9 +396,12 @@ auto Dfa<TypedDfaState, TypedNfaState>::generate(Nfa<TypedNfaState> const& nfa) 
              get_transitions(nfa.get_num_tags(), config_set, tag_id_with_op_to_reg_id))
         {
             auto& [reg_ops, dest_config_set]{dest_config_pair};
-            auto [dest_state, optional_reg_map]{
-                    create_or_get_dfa_state(dest_config_set, dfa_states, unexplored_sets)
-            };
+            auto [dest_state, optional_reg_map]{create_or_get_dfa_state(
+                    dest_config_set,
+                    dfa_states,
+                    unexplored_sets,
+                    nfa.get_multi_valued()
+            )};
             if (optional_reg_map.has_value()) {
                 reassign_transition_reg_ops(optional_reg_map.value(), reg_ops);
             }
@@ -373,12 +413,16 @@ auto Dfa<TypedDfaState, TypedNfaState>::generate(Nfa<TypedNfaState> const& nfa) 
 
 template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::initialize_registers(
-        size_t const num_tags,
+        std::vector<bool> multi_valued_list,
         RegisterHandler& register_handler,
         std::map<tag_id_t, reg_id_t>& initial_tag_id_to_reg_id,
         std::map<tag_id_t, reg_id_t>& final_tag_id_to_reg_id
 ) -> void {
-    register_handler.add_registers(2 * num_tags);
+    size_t const num_tags{multi_valued_list.size()};
+    multi_valued_list.reserve(2 * num_tags);
+    multi_valued_list
+            .insert(multi_valued_list.end(), multi_valued_list.begin(), multi_valued_list.end());
+    register_handler.add_registers(multi_valued_list);
     for (uint32_t i{0}; i < num_tags; i++) {
         initial_tag_id_to_reg_id.insert({i, i});
         final_tag_id_to_reg_id.insert({i, num_tags + i});
@@ -436,7 +480,8 @@ template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::create_or_get_dfa_state(
         ConfigurationSet const& config_set,
         std::map<ConfigurationSet, TypedDfaState*>& dfa_states,
-        std::queue<ConfigurationSet>& unexplored_sets
+        std::queue<ConfigurationSet>& unexplored_sets,
+        std::vector<bool> const multi_valued
 ) -> std::pair<TypedDfaState*, std::optional<std::unordered_map<reg_id_t, reg_id_t>>> {
     if (false == dfa_states.contains(config_set)) {
         for (auto const& [config_set_in_map, dfa_state] : dfa_states) {
@@ -445,7 +490,9 @@ auto Dfa<TypedDfaState, TypedNfaState>::create_or_get_dfa_state(
                 return {dfa_state, optional_reg_map};
             }
         }
-        dfa_states.insert({config_set, new_state(config_set, m_tag_id_to_final_reg_id)});
+        dfa_states.insert(
+                {config_set, new_state(config_set, m_tag_id_to_final_reg_id, multi_valued)}
+        );
         unexplored_sets.push(config_set);
     }
     return {dfa_states.at(config_set), std::nullopt};
@@ -500,15 +547,24 @@ auto Dfa<TypedDfaState, TypedNfaState>::assign_transition_reg_ops(
 ) -> std::vector<RegisterOperation> {
     std::vector<RegisterOperation> reg_ops;
     std::set<DeterminizationConfiguration<TypedNfaState>> new_closure;
+
+    std::map<reg_id_t, RegisterOperation> multi_valued_registers;
+    std::vector<RegisterOperation> single_valued_registers;
+
     for (auto config : closure) {
         for (tag_id_t tag_id{0}; tag_id < num_tags; tag_id++) {
             auto const optional_tag_op{config.get_tag_history(tag_id)};
             if (optional_tag_op.has_value()) {
                 auto const tag_op{optional_tag_op.value()};
                 if (false == tag_id_with_op_to_reg_id.contains(tag_id)) {
-                    tag_id_with_op_to_reg_id.emplace(tag_id, m_reg_handler.add_register());
+                    tag_id_with_op_to_reg_id.emplace(
+                            tag_id,
+                            m_reg_handler.add_register(tag_op.is_multi_valued())
+                    );
                 }
+
                 auto reg_id = tag_id_with_op_to_reg_id.at(tag_id);
+
                 if (std::none_of(
                             reg_ops.begin(),
                             reg_ops.end(),
@@ -517,16 +573,30 @@ auto Dfa<TypedDfaState, TypedNfaState>::assign_transition_reg_ops(
                             }
                     ))
                 {
-                    if (TagOperationType::Set == tag_op.get_type()) {
-                        reg_ops.emplace_back(RegisterOperation::create_set_operation(
-                                reg_id,
-                                tag_op.is_multi_valued()
-                        ));
-                    } else if (TagOperationType::Negate == tag_op.get_type()) {
-                        reg_ops.emplace_back(RegisterOperation::create_negate_operation(
-                                reg_id,
-                                tag_op.is_multi_valued()
-                        ));
+                    if (tag_op.is_multi_valued()) {
+                        if (TagOperationType::Set == tag_op.get_type()) {
+                            reg_ops.emplace_back(RegisterOperation::create_set_operation(
+                                    reg_id,
+                                    tag_op.is_multi_valued()
+                            ));
+                        } else if (TagOperationType::Negate == tag_op.get_type()) {
+                            reg_ops.emplace_back(RegisterOperation::create_negate_operation(
+                                    reg_id,
+                                    tag_op.is_multi_valued()
+                            ));
+                        }
+                    } else {
+                        if (TagOperationType::Set == tag_op.get_type()) {
+                            reg_ops.emplace_back(RegisterOperation::create_set_operation(
+                                    reg_id,
+                                    tag_op.is_multi_valued()
+                            ));
+                        } else if (TagOperationType::Negate == tag_op.get_type()) {
+                            reg_ops.emplace_back(RegisterOperation::create_negate_operation(
+                                    reg_id,
+                                    tag_op.is_multi_valued()
+                            ));
+                        }
                     }
                 }
                 config.set_reg_id(tag_id, tag_id_with_op_to_reg_id.at(tag_id));
@@ -548,15 +618,19 @@ auto Dfa<TypedDfaState, TypedNfaState>::reassign_transition_reg_ops(
             continue;
         }
         bool is_existing_reg_op_mapping{false};
+        bool multi_valued;
         for (auto& reg_op : reg_ops) {
             if (reg_op.get_reg_id() == old_reg_id) {
                 reg_op.set_reg_id(new_reg_id);
                 is_existing_reg_op_mapping = true;
+                multi_valued = reg_op.is_multi_valued();
                 break;
             }
         }
         if (false == is_existing_reg_op_mapping) {
-            reg_ops.emplace_back(RegisterOperation::create_copy_operation(new_reg_id, old_reg_id));
+            reg_ops.emplace_back(
+                    RegisterOperation::create_copy_operation(new_reg_id, old_reg_id, multi_valued)
+            );
         }
     }
 }
@@ -564,7 +638,8 @@ auto Dfa<TypedDfaState, TypedNfaState>::reassign_transition_reg_ops(
 template <typename TypedDfaState, typename TypedNfaState>
 auto Dfa<TypedDfaState, TypedNfaState>::new_state(
         ConfigurationSet const& config_set,
-        std::map<tag_id_t, reg_id_t> const& tag_id_to_final_reg_id
+        std::map<tag_id_t, reg_id_t> const& tag_id_to_final_reg_id,
+        std::vector<bool> const multi_valued
 ) -> TypedDfaState* {
     m_states.emplace_back(std::make_unique<TypedDfaState>());
     auto* dfa_state = m_states.back().get();
@@ -590,9 +665,11 @@ auto Dfa<TypedDfaState, TypedNfaState>::new_state(
                 } else {
                     // Note: `config` must have a reg for this tag so we just call `at`.
                     auto const prev_reg_id{config.get_tag_id_to_reg_ids().at(tag_id)};
-                    dfa_state->add_accepting_op(
-                            RegisterOperation::create_copy_operation(final_reg_id, prev_reg_id)
-                    );
+                    dfa_state->add_accepting_op(RegisterOperation::create_copy_operation(
+                            final_reg_id,
+                            prev_reg_id,
+                            multi_valued.at(tag_id)
+                    ));
                 }
             }
         }

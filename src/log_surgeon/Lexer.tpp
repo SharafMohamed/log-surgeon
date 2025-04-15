@@ -63,7 +63,7 @@ auto Lexer<TypedNfaState, TypedDfaState>::scan(ParserInputBuffer& input_buffer
                     m_match_line,
                     m_type_ids
             };
-            m_dfa->release_reg_handler(token);
+            m_dfa->assign_token_regs(token, true);
             return {ErrorCode::Success, token};
         }
         m_start_pos = input_buffer.storage().pos();
@@ -134,7 +134,7 @@ auto Lexer<TypedNfaState, TypedDfaState>::scan(ParserInputBuffer& input_buffer
                         m_match_line,
                         m_type_ids
                 };
-                m_dfa->release_reg_handler(token);
+                m_dfa->assign_token_regs(token, true);
                 return {ErrorCode::Success, token};
             }
             if (input_buffer.log_fully_consumed() && input_buffer.storage().pos() == m_start_pos) {

@@ -165,15 +165,15 @@ TEST_CASE("Test Repetition NFA", "[NFA]") {
     string const expected_serialized_nfa{
             "0:byte_transitions={a-->1},spontaneous_transition={}\n"
             "1:byte_transitions={=-->2,a-->1},spontaneous_transition={}\n"
-            "2:byte_transitions={},spontaneous_transition={3[0p]}\n"
+            "2:byte_transitions={},spontaneous_transition={3[0p+]}\n"
             "3:byte_transitions={1-->4},spontaneous_transition={}\n"
-            "4:byte_transitions={1-->4},spontaneous_transition={5[1p]}\n"
+            "4:byte_transitions={1-->4},spontaneous_transition={5[1p+]}\n"
             "5:byte_transitions={,-->6},spontaneous_transition={}\n"
             "6:accepting_tag=0,byte_transitions={a-->7},spontaneous_transition={}\n"
             "7:byte_transitions={=-->8,a-->7},spontaneous_transition={}\n"
-            "8:byte_transitions={},spontaneous_transition={9[0p]}\n"
+            "8:byte_transitions={},spontaneous_transition={9[0p+]}\n"
             "9:byte_transitions={1-->10},spontaneous_transition={}\n"
-            "10:byte_transitions={1-->10},spontaneous_transition={11[1p]}\n"
+            "10:byte_transitions={1-->10},spontaneous_transition={11[1p+]}\n"
             "11:byte_transitions={,-->6},spontaneous_transition={}\n"
     };
 

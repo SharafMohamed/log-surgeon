@@ -19,11 +19,12 @@ namespace log_surgeon::finite_automata {
 class RegisterOperation {
 public:
     enum class Type : uint8_t {
-        Copy,
         Set,
         Append,
         NegateSet,
-        NegateAppend
+        NegateAppend,
+        CopySet,
+        CopyAppend
     };
 
     bool operator==(RegisterOperation const& rhs) const {
@@ -34,22 +35,28 @@ public:
     static auto
     create_set_operation(reg_id_t const reg_id, bool const multi_valued) -> RegisterOperation {
         if (multi_valued) {
-            return {reg_id, Type::Append};
+            return {reg_id, Type::Append, multi_valued};
         }
-        return {reg_id, Type::Set};
+        return {reg_id, Type::Set, multi_valued};
     }
 
     static auto
     create_negate_operation(reg_id_t const reg_id, bool const multi_valued) -> RegisterOperation {
         if (multi_valued) {
-            return {reg_id, Type::NegateAppend};
+            return {reg_id, Type::NegateAppend, multi_valued};
         }
-        return {reg_id, Type::NegateSet};
+        return {reg_id, Type::NegateSet, multi_valued};
     }
 
-    static auto create_copy_operation(reg_id_t const dest_reg_id, reg_id_t const src_reg_id)
-            -> RegisterOperation {
-        return {dest_reg_id, src_reg_id};
+    static auto create_copy_operation(
+            reg_id_t const dest_reg_id,
+            reg_id_t const src_reg_id,
+            bool const multi_valued
+    ) -> RegisterOperation {
+        if (multi_valued) {
+            return {dest_reg_id, src_reg_id, Type::CopyAppend, multi_valued};
+        }
+        return {dest_reg_id, src_reg_id, Type::CopySet, multi_valued};
     }
 
     auto set_reg_id(reg_id_t const reg_id) -> void { m_reg_id = reg_id; }
@@ -59,6 +66,8 @@ public:
     [[nodiscard]] auto get_type() const -> Type { return m_type; }
 
     [[nodiscard]] auto get_copy_reg_id() const -> std::optional<reg_id_t> { return m_copy_reg_id; }
+
+    [[nodiscard]] auto is_multi_valued() const -> bool { return m_multi_valued; }
 
     /**
      * Serializes the register operation into a string representation.
@@ -70,11 +79,6 @@ public:
      */
     [[nodiscard]] auto serialize() const -> std::optional<std::string> {
         switch (m_type) {
-            case Type::Copy:
-                if (false == m_copy_reg_id.has_value()) {
-                    return std::nullopt;
-                }
-                return fmt::format("{}{}{}", m_reg_id, "c", m_copy_reg_id.value());
             case Type::Set:
                 return fmt::format("{}{}", m_reg_id, "p");
             case Type::Append:
@@ -83,22 +87,42 @@ public:
                 return fmt::format("{}{}", m_reg_id, "n");
             case Type::NegateAppend:
                 return fmt::format("{}{}", m_reg_id, "n+");
+            case Type::CopySet:
+                if (false == m_copy_reg_id.has_value()) {
+                    return std::nullopt;
+                }
+                return fmt::format("{}{}{}", m_reg_id, "c", m_copy_reg_id.value());
+            case Type::CopyAppend:
+                if (false == m_copy_reg_id.has_value()) {
+                    return std::nullopt;
+                }
+                return fmt::format("{}{}{}", m_reg_id, "c+", m_copy_reg_id.value());
             default:
                 return std::nullopt;
         }
     }
 
 private:
-    RegisterOperation(reg_id_t const reg_id, Type const type) : m_reg_id{reg_id}, m_type{type} {}
-
-    RegisterOperation(reg_id_t const reg_id, reg_id_t const copy_reg_id)
+    RegisterOperation(reg_id_t const reg_id, Type const type, bool const multi_valued)
             : m_reg_id{reg_id},
-              m_type{Type::Copy},
-              m_copy_reg_id{copy_reg_id} {}
+              m_type{type},
+              m_multi_valued{multi_valued} {}
+
+    RegisterOperation(
+            reg_id_t const reg_id,
+            reg_id_t const copy_reg_id,
+            Type const type,
+            bool const multi_valued
+    )
+            : m_reg_id{reg_id},
+              m_type{type},
+              m_copy_reg_id{copy_reg_id},
+              m_multi_valued{multi_valued} {}
 
     reg_id_t m_reg_id;
     Type m_type;
     std::optional<reg_id_t> m_copy_reg_id{std::nullopt};
+    bool m_multi_valued;
 };
 }  // namespace log_surgeon::finite_automata
 

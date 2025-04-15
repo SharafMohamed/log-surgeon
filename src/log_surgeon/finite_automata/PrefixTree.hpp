@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <log_surgeon/types.hpp>
+
 namespace log_surgeon::finite_automata {
 /**
  * Represents a prefix tree to store register data during TDFA simulation. Each node in the tree
@@ -21,10 +23,9 @@ namespace log_surgeon::finite_automata {
 class PrefixTree {
 public:
     using id_t = uint32_t;
-    using position_t = int32_t;
 
     static constexpr id_t cRootId{0};
-    static constexpr position_t cDefaultPos{0};
+    static constexpr reg_pos_t cDefaultPos{0};
 
     PrefixTree() : m_nodes{{std::nullopt, -1}} {}
 
@@ -34,7 +35,7 @@ public:
      * @return The index of the newly inserted node in the tree.
      * @throw std::out_of_range if the parent's index is out of range.
      */
-    [[maybe_unused]] auto insert(id_t const parent_node_id, position_t const position) -> id_t {
+    [[maybe_unused]] auto insert(id_t const parent_node_id, reg_pos_t const position) -> id_t {
         if (m_nodes.size() <= parent_node_id) {
             throw std::out_of_range("Predecessor index out of range.");
         }
@@ -43,7 +44,7 @@ public:
         return m_nodes.size() - 1;
     }
 
-    auto set(id_t const node_id, position_t const position) -> void {
+    auto set(id_t const node_id, reg_pos_t const position) -> void {
         m_nodes.at(node_id).set_position(position);
     }
 
@@ -55,12 +56,12 @@ public:
      * the root node.
      * @throw std::out_of_range if the index is out of range.
      */
-    [[nodiscard]] auto get_reversed_positions(id_t node_id) const -> std::vector<position_t>;
+    [[nodiscard]] auto get_reversed_positions(id_t node_id) const -> std::vector<reg_pos_t>;
 
 private:
     class Node {
     public:
-        Node(std::optional<id_t> const parent_id, position_t const position)
+        Node(std::optional<id_t> const parent_id, reg_pos_t const position)
                 : m_parent_id{parent_id},
                   m_position{position} {}
 
@@ -76,13 +77,13 @@ private:
             return m_parent_id.value();
         }
 
-        auto set_position(position_t const position) -> void { m_position = position; }
+        auto set_position(reg_pos_t const position) -> void { m_position = position; }
 
-        [[nodiscard]] auto get_position() const -> position_t { return m_position; }
+        [[nodiscard]] auto get_position() const -> reg_pos_t { return m_position; }
 
     private:
         std::optional<id_t> m_parent_id;
-        position_t m_position;
+        reg_pos_t m_position;
     };
 
     std::vector<Node> m_nodes;

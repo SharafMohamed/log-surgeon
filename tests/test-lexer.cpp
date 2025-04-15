@@ -33,6 +33,8 @@ using std::unordered_map;
 using std::vector;
 using std::wstring_convert;
 
+using position_t = log_surgeon::reg_pos_t;
+
 using RegexASTCatByte
         = log_surgeon::finite_automata::RegexASTCat<log_surgeon::finite_automata::ByteNfaState>;
 using RegexASTCaptureByte
@@ -86,11 +88,8 @@ auto test_scanning_input(
         ByteLexer& lexer,
         std::string_view input,
         std::string_view rule_name,
-        std::map<
-                capture_id_t,
-                std::pair<
-                        std::vector<PrefixTree::position_t>,
-                        std::vector<PrefixTree::position_t>>> const& expected_capture_map
+        std::map<capture_id_t, std::pair<std::vector<position_t>, std::vector<position_t>>> const&
+                expected_capture_map
 ) -> void;
 /**
  * @param map The map to serialize.
@@ -164,11 +163,8 @@ auto test_scanning_input(
         ByteLexer& lexer,
         std::string_view input,
         std::string_view rule_name,
-        std::map<
-                capture_id_t,
-                std::pair<
-                        std::vector<PrefixTree::position_t>,
-                        std::vector<PrefixTree::position_t>>> const& expected_capture_map
+        std::map<capture_id_t, std::pair<std::vector<position_t>, std::vector<position_t>>> const&
+                expected_capture_map
 ) -> void {
     CAPTURE(input);
     CAPTURE(rule_name);
@@ -409,8 +405,7 @@ TEST_CASE("Test Lexer with capture groups", "[Lexer]") {
     constexpr string_view cTokenString1{"userID=123"};
     constexpr string_view cTokenString2{"userID=234"};
     constexpr string_view cTokenString3{"123"};
-    std::pair<std::vector<PrefixTree::position_t>, std::vector<PrefixTree::position_t>> const
-            capture_positions{{7}, {10}};
+    std::pair<std::vector<position_t>, std::vector<position_t>> const capture_positions{{7}, {10}};
 
     Schema schema;
     schema.add_variable(cVarSchema, -1);
@@ -474,8 +469,7 @@ TEST_CASE("Test CLP default schema", "[Lexer]") {
     constexpr string_view cTokenString4{"abc"};
     constexpr string_view cTokenString5{"userID=123"};
     constexpr string_view cTokenString6{"user123"};
-    std::pair<std::vector<PrefixTree::position_t>, std::vector<PrefixTree::position_t>> const
-            capture_positions{{7}, {10}};
+    std::pair<std::vector<position_t>, std::vector<position_t>> const capture_positions{{7}, {10}};
 
     Schema schema;
     schema.add_variable(cVarSchema1, -1);
@@ -504,8 +498,10 @@ TEST_CASE("Test capture group repetition and backtracking", "[Lexer]") {
     constexpr string_view cVarName{"myVar"};
     constexpr string_view cVarSchema{"myVar:([A-Za-z]+=(?<val>[a-zA-Z0-9]+),){4}"};
     constexpr string_view cTokenString{"userID=123,age=30,height=70,weight=100,"};
-    std::pair<std::vector<PrefixTree::position_t>, std::vector<PrefixTree::position_t>> const
-            capture_positions{{35, 25, 15, 7}, {37, 27, 17, 10}};
+    std::pair<std::vector<position_t>, std::vector<position_t>> const capture_positions{
+            {35, 25, 15, 7},
+            {37, 27, 17, 10}
+    };
 
     Schema schema;
     schema.add_variable(cVarSchema, -1);

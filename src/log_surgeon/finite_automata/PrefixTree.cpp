@@ -4,12 +4,12 @@
 #include <vector>
 
 namespace log_surgeon::finite_automata {
-auto PrefixTree::get_reversed_positions(id_t const node_id) const -> std::vector<position_t> {
+auto PrefixTree::get_reversed_positions(id_t const node_id) const -> std::vector<reg_pos_t> {
     if (m_nodes.size() <= node_id) {
         throw std::out_of_range("Prefix tree index out of range.");
     }
 
-    std::vector<position_t> reversed_positions;
+    std::vector<reg_pos_t> reversed_positions;
     auto current_node{m_nodes[node_id]};
     while (false == current_node.is_root()) {
         reversed_positions.push_back(current_node.get_position());

@@ -8,7 +8,7 @@
 
 using log_surgeon::finite_automata::PrefixTree;
 using id_t = PrefixTree::id_t;
-using position_t = PrefixTree::position_t;
+using position_t = log_surgeon::reg_pos_t;
 
 TEST_CASE("`PrefixTree` operations", "[PrefixTree]") {
     constexpr auto cRootId{PrefixTree::cRootId};
