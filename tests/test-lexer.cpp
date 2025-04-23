@@ -74,17 +74,21 @@ auto test_regex_ast(string_view var_schema, u32string const& expected_serialized
 [[nodiscard]] auto create_lexer(std::unique_ptr<SchemaAST> schema_ast) -> ByteLexer;
 
 /**
- * Lexes the given input and verifies the output is a token for the given rule name, folowed by the
- * end of input token.
+ * Lexes the given input (without resetting the lexer) and verifies the next token is for the given
+ * rule name.
+ *
+ * If the rule has captures, verifies the captures are in the right place.
  *
  * @param lexer The lexer to scan the input with.
- * @param input The input to lex.
- * @param rule_name The expected symbol to match.
+ * @param input_buffer The input buffer to lex.
+ * @param expected_input_match The part of the input that matches this token.
+ * @param rule_name The expected symbol to match (empty for uncaught string).
  * @param expected_capture_map The expected start and end position of each capture.
  */
-auto test_scanning_input(
+auto scan_and_validate_next_token(
         ByteLexer& lexer,
-        std::string_view input,
+        log_surgeon::ParserInputBuffer& input_buffer,
+        std::string_view expected_input_match,
         std::string_view rule_name,
         std::map<
                 capture_id_t,
@@ -92,6 +96,34 @@ auto test_scanning_input(
                         std::vector<PrefixTree::position_t>,
                         std::vector<PrefixTree::position_t>>> const& expected_capture_map
 ) -> void;
+
+/**
+ * Lexes the given input (with resetting the lexer) and verifies the output is a sequence of tokens
+ * matching the given tokens.
+ *
+ * If any rule has captures, verifies the captures are in the right place.
+ *
+ * @param lexer The lexer to scan the input with.
+ * @param input The input to lex.
+ * @param expected_test_sequence A list of expected matches, where each match is a tuple containing:
+ * - The substring of the input that matches the current token,
+ * - The rule name of the current token (empty for uncaught string),
+ * - The start and end position of each capture.
+ */
+auto scan_and_validate_sequence(
+        ByteLexer& lexer,
+        std::string_view input,
+        std::vector<std::tuple<
+                std::string_view,
+                std::string_view,
+                std::map<
+                        capture_id_t,
+                        std::pair<
+                                std::vector<PrefixTree::position_t>,
+                                std::vector<PrefixTree::position_t>>>>> const&
+                expected_test_sequence
+) -> void;
+
 /**
  * @param map The map to serialize.
  * @return The serialized map.
@@ -160,9 +192,10 @@ auto create_lexer(std::unique_ptr<SchemaAST> schema_ast) -> ByteLexer {
     return lexer;
 }
 
-auto test_scanning_input(
+auto scan_and_validate_next_token(
         ByteLexer& lexer,
-        std::string_view input,
+        log_surgeon::ParserInputBuffer& input_buffer,
+        std::string_view expected_input_match,
         std::string_view rule_name,
         std::map<
                 capture_id_t,
@@ -170,19 +203,11 @@ auto test_scanning_input(
                         std::vector<PrefixTree::position_t>,
                         std::vector<PrefixTree::position_t>>> const& expected_capture_map
 ) -> void {
-    CAPTURE(input);
     CAPTURE(rule_name);
+    CAPTURE(expected_input_match);
 
-    lexer.reset();
-    CAPTURE(serialize_id_symbol_map(lexer.m_id_symbol));
-
-    log_surgeon::ParserInputBuffer input_buffer;
-    string token_string{input};
-    input_buffer.set_storage(token_string.data(), token_string.size(), 0, true);
-    lexer.prepend_start_of_file_char(input_buffer);
-
-    auto [err1, optional_token1]{lexer.scan(input_buffer)};
-    REQUIRE(log_surgeon::ErrorCode::Success == err1);
+    auto [err, optional_token1]{lexer.scan(input_buffer)};
+    REQUIRE(log_surgeon::ErrorCode::Success == err);
     REQUIRE(optional_token1.has_value());
     if (false == optional_token1.has_value()) {
         return;
@@ -192,8 +217,12 @@ auto test_scanning_input(
     CAPTURE(token.to_string_view());
     CAPTURE(*token.m_type_ids_ptr);
     REQUIRE(nullptr != token.m_type_ids_ptr);
-    REQUIRE(rule_name == lexer.m_id_symbol.at(token_type));
-    REQUIRE(input == token.to_string_view());
+    if (rule_name.empty()) {
+        REQUIRE(log_surgeon::cTokenUncaughtString == lexer.m_id_symbol.at(token_type));
+    } else {
+        REQUIRE(rule_name == lexer.m_id_symbol.at(token_type));
+    }
+    REQUIRE(expected_input_match == token.to_string_view());
 
     if (false == expected_capture_map.empty()) {
         auto optional_capture_ids{lexer.get_capture_ids_from_rule_id(token_type)};
@@ -218,14 +247,48 @@ auto test_scanning_input(
             REQUIRE(expected_end_positions == actual_end_positions);
         }
     }
+}
 
-    auto [err2, optional_token2]{lexer.scan(input_buffer)};
-    REQUIRE(log_surgeon::ErrorCode::Success == err2);
+auto scan_and_validate_sequence(
+        ByteLexer& lexer,
+        std::string_view input,
+        std::vector<std::tuple<
+                std::string_view,
+                std::string_view,
+                std::map<
+                        capture_id_t,
+                        std::pair<
+                                std::vector<PrefixTree::position_t>,
+                                std::vector<PrefixTree::position_t>>>>> const&
+                expected_test_sequence
+) -> void {
+    lexer.reset();
+    CAPTURE(serialize_id_symbol_map(lexer.m_id_symbol));
+
+    log_surgeon::ParserInputBuffer input_buffer;
+    string token_string{input};
+    input_buffer.set_storage(token_string.data(), token_string.size(), 0, true);
+    lexer.prepend_start_of_file_char(input_buffer);
+
+    CAPTURE(input);
+    for (auto const& [expected_input_match, rule_name, captures] : expected_test_sequence) {
+        scan_and_validate_next_token(
+                lexer,
+                input_buffer,
+                expected_input_match,
+                rule_name,
+                captures
+        );
+    }
+
+    // Make sure it finishes on cTokenEnd
+    auto [err, optional_token2]{lexer.scan(input_buffer)};
+    REQUIRE(log_surgeon::ErrorCode::Success == err);
     REQUIRE(optional_token2.has_value());
     if (false == optional_token2.has_value()) {
         return;
     }
-    token = optional_token2.value();
+    auto token{optional_token2.value()};
     REQUIRE(nullptr != token.m_type_ids_ptr);
     CAPTURE(token.to_string_view());
     CAPTURE(*token.m_type_ids_ptr);
@@ -397,9 +460,17 @@ TEST_CASE("Test Lexer without capture groups", "[Lexer]") {
     ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
 
     CAPTURE(cVarSchema);
-    test_scanning_input(lexer, cTokenString1, cVarName, {});
-    test_scanning_input(lexer, cTokenString2, log_surgeon::cTokenUncaughtString, {});
-    test_scanning_input(lexer, cTokenString3, log_surgeon::cTokenUncaughtString, {});
+    scan_and_validate_sequence(lexer, cTokenString1, {{cTokenString1, cVarName, {}}});
+    scan_and_validate_sequence(
+            lexer,
+            cTokenString2,
+            {{cTokenString2, log_surgeon::cTokenUncaughtString, {}}}
+    );
+    scan_and_validate_sequence(
+            lexer,
+            cTokenString3,
+            {{cTokenString3, log_surgeon::cTokenUncaughtString, {}}}
+    );
 }
 
 TEST_CASE("Test Lexer with capture groups", "[Lexer]") {
@@ -441,14 +512,21 @@ TEST_CASE("Test Lexer with capture groups", "[Lexer]") {
     REQUIRE(3u == reg_id1.value());
 
     CAPTURE(cVarSchema);
-    test_scanning_input(
+    scan_and_validate_sequence(
             lexer,
             cTokenString1,
-            cVarName,
-            {{lexer.m_symbol_id.at(capture_name), capture_positions}}
+            {{cTokenString1, cVarName, {{lexer.m_symbol_id.at(capture_name), capture_positions}}}}
     );
-    test_scanning_input(lexer, cTokenString2, log_surgeon::cTokenUncaughtString, {});
-    test_scanning_input(lexer, cTokenString3, log_surgeon::cTokenUncaughtString, {});
+    scan_and_validate_sequence(
+            lexer,
+            cTokenString2,
+            {{cTokenString2, log_surgeon::cTokenUncaughtString, {}}}
+    );
+    scan_and_validate_sequence(
+            lexer,
+            cTokenString3,
+            {{cTokenString3, log_surgeon::cTokenUncaughtString, {}}}
+    );
 }
 
 TEST_CASE("Test CLP default schema", "[Lexer]") {
@@ -486,17 +564,41 @@ TEST_CASE("Test CLP default schema", "[Lexer]") {
     schema.add_variable(cVarSchema6, -1);
     ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
 
-    test_scanning_input(lexer, cTokenString1, cVarName1, {});
-    test_scanning_input(lexer, cTokenString2, cVarName2, {});
-    test_scanning_input(lexer, cTokenString3, cVarName3, {});
-    test_scanning_input(lexer, cTokenString4, cVarName4, {});
-    test_scanning_input(
+    scan_and_validate_sequence(lexer, cTokenString1, {{cTokenString1, cVarName1, {}}});
+    scan_and_validate_sequence(lexer, cTokenString2, {{cTokenString2, cVarName2, {}}});
+    scan_and_validate_sequence(lexer, cTokenString3, {{cTokenString3, cVarName3, {}}});
+    scan_and_validate_sequence(lexer, cTokenString4, {{cTokenString4, cVarName4, {}}});
+    scan_and_validate_sequence(
             lexer,
             cTokenString5,
-            cVarName5,
-            {{lexer.m_symbol_id.at(capture_name), capture_positions}}
+            {{cTokenString5, cVarName5, {{lexer.m_symbol_id.at(capture_name), capture_positions}}}}
     );
-    test_scanning_input(lexer, cTokenString6, cVarName6, {});
+    scan_and_validate_sequence(lexer, cTokenString6, {{cTokenString6, cVarName6, {}}});
+}
+
+TEST_CASE("Test delimited variables", "[Lexer]") {
+    string const capture_name{"val"};
+    constexpr string_view cVarName1{"function"};
+    constexpr string_view cVarSchema1{"function:[A-Za-z]+::[A-Za-z]+"};
+    constexpr string_view cVarName2{"path"};
+    constexpr string_view cVarSchema2{R"(path:[a-zA-Z0-9_/\.\-]+/[a-zA-Z0-9_/\.\-]+)"};
+    constexpr string_view cTokenString1{"GeExecutor::Initialize"};
+    constexpr string_view cTokenString2{"word::my/path/to/file.txt"};
+
+    Schema schema;
+    schema.add_variable(cVarSchema1, -1);
+    schema.add_variable(cVarSchema2, -1);
+    ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
+
+    CAPTURE(cVarSchema1);
+    scan_and_validate_sequence(lexer, cTokenString1, {{cTokenString1, cVarName1, {}}});
+
+    CAPTURE(cVarSchema2);
+    scan_and_validate_sequence(
+            lexer,
+            cTokenString2,
+            {{"word::", "", {}}, {"my/path/to/file.txt", cVarName2, {}}}
+    );
 }
 
 TEST_CASE("Test capture group repetition and backtracking", "[Lexer]") {
@@ -512,11 +614,10 @@ TEST_CASE("Test capture group repetition and backtracking", "[Lexer]") {
     ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
 
     CAPTURE(cVarSchema);
-    test_scanning_input(
+    scan_and_validate_sequence(
             lexer,
             cTokenString,
-            cVarName,
-            {{lexer.m_symbol_id.at(capture_name), capture_positions}}
+            {{cTokenString, cVarName, {{lexer.m_symbol_id.at(capture_name), capture_positions}}}}
     );
     // TODO: add backtracking case
 }
