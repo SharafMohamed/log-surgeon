@@ -151,7 +151,7 @@ auto u32string_to_string(u32string const& u32_str) -> string {
 }
 
 auto create_lexer(std::unique_ptr<SchemaAST> schema_ast) -> ByteLexer {
-    vector<uint32_t> const delimiters{' ', '\n', '\r'};
+    vector<uint32_t> const delimiters{' ', '\n', '\r', ':'};
 
     ByteLexer lexer;
     lexer.add_delimiters(delimiters);
@@ -579,11 +579,13 @@ TEST_CASE("Test CLP default schema", "[Lexer]") {
 TEST_CASE("Test delimited variables", "[Lexer]") {
     string const capture_name{"val"};
     constexpr string_view cVarName1{"function"};
-    constexpr string_view cVarSchema1{"function:[A-Za-z]+::[A-Za-z]+"};
+    constexpr string_view cVarSchema1{"function:[A-Za-z]+::[A-Za-z]+1"};
     constexpr string_view cVarName2{"path"};
     constexpr string_view cVarSchema2{R"(path:[a-zA-Z0-9_/\.\-]+/[a-zA-Z0-9_/\.\-]+)"};
-    constexpr string_view cTokenString1{"GeExecutor::Initialize"};
+    constexpr string_view cTokenString1{"Word GeExecutor::Initialize1"};
     constexpr string_view cTokenString2{"word::my/path/to/file.txt"};
+    constexpr string_view cTokenString3{"GeExecutor::Initialize"};
+    constexpr string_view cTokenString4{"::GeExecutor::Initialize1"};
 
     Schema schema;
     schema.add_variable(cVarSchema1, -1);
@@ -591,13 +593,29 @@ TEST_CASE("Test delimited variables", "[Lexer]") {
     ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
 
     CAPTURE(cVarSchema1);
-    scan_and_validate_sequence(lexer, cTokenString1, {{cTokenString1, cVarName1, {}}});
+    scan_and_validate_sequence(
+            lexer,
+            cTokenString1,
+            {{"Word", "", {}}, {" GeExecutor::Initialize1", cVarName1, {}}}
+    );
 
     CAPTURE(cVarSchema2);
     scan_and_validate_sequence(
             lexer,
             cTokenString2,
-            {{"word::", "", {}}, {"my/path/to/file.txt", cVarName2, {}}}
+            {{"word", "", {}}, {":", "", {}}, {":my/path/to/file.txt", cVarName2, {}}}
+    );
+
+    scan_and_validate_sequence(
+            lexer,
+            cTokenString3,
+            {{"GeExecutor", "", {}}, {":", "", {}}, {":Initialize", "", {}}}
+    );
+
+    scan_and_validate_sequence(
+            lexer,
+            cTokenString4,
+            {{":", "", {}}, {":GeExecutor::Initialize1", cVarName1, {}}}
     );
 }
 
