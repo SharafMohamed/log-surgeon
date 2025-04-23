@@ -86,7 +86,9 @@ auto Lexer<TypedNfaState, TypedDfaState>::scan(ParserInputBuffer& input_buffer
             m_prev_state = state;
             return {err, std::nullopt};
         }
-        if (false == m_optional_first_delimiter_pos.has_value() && m_is_delimiter[next_char]) {
+        if (false == m_optional_first_delimiter_pos.has_value() && m_is_delimiter[next_char]
+            && prev_byte_buf_pos != m_last_match_pos)
+        {
             m_optional_first_delimiter_pos = prev_byte_buf_pos;
         }
 
@@ -187,9 +189,7 @@ auto Lexer<TypedNfaState, TypedDfaState>::scan(ParserInputBuffer& input_buffer
                 };
                 return {ErrorCode::Success, token};
             }
-            if (m_optional_first_delimiter_pos.has_value()
-                && m_optional_first_delimiter_pos.value() != m_last_match_pos)
-            {
+            if (m_optional_first_delimiter_pos.has_value()) {
                 Token token{
                         m_last_match_pos,
                         m_optional_first_delimiter_pos.value(),
@@ -202,7 +202,7 @@ auto Lexer<TypedNfaState, TypedDfaState>::scan(ParserInputBuffer& input_buffer
                 return {ErrorCode::Success, token};
             }
             m_optional_first_delimiter_pos = std::nullopt;
-            
+
             // TODO: remove timestamp from m_is_fist_char so that m_is_delimiter check not needed
             while (false == input_buffer.log_fully_consumed()
                    && (false == m_is_first_char_of_a_variable[next_char]

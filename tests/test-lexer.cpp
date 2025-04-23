@@ -151,7 +151,7 @@ auto u32string_to_string(u32string const& u32_str) -> string {
 }
 
 auto create_lexer(std::unique_ptr<SchemaAST> schema_ast) -> ByteLexer {
-    vector<uint32_t> const delimiters{' ', '\n', '\r', ':'};
+    vector<uint32_t> const delimiters{' ', '\n', '\r', ':', '[', ','};
 
     ByteLexer lexer;
     lexer.add_delimiters(delimiters);
@@ -586,6 +586,9 @@ TEST_CASE("Test delimited variables", "[Lexer]") {
     constexpr string_view cTokenString2{"word::my/path/to/file.txt"};
     constexpr string_view cTokenString3{"GeExecutor::Initialize"};
     constexpr string_view cTokenString4{"::GeExecutor::Initialize1"};
+    constexpr string_view cTokenString5{"folder/file-op71"};
+    constexpr string_view cTokenString6{"[WARNING] PARALLEL:2024 [folder/file.cc:150] insert "
+                                        "node:folder/file-op7, id:7 and folder/file-op8, id:8"};
 
     Schema schema;
     schema.add_variable(cVarSchema1, -1);
@@ -616,6 +619,30 @@ TEST_CASE("Test delimited variables", "[Lexer]") {
             lexer,
             cTokenString4,
             {{":", "", {}}, {":GeExecutor::Initialize1", cVarName1, {}}}
+    );
+
+    scan_and_validate_sequence(lexer, cTokenString5, {{cTokenString5, cVarName2, {}}});
+
+    scan_and_validate_sequence(
+            lexer,
+            cTokenString6,
+            {{"[WARNING]", "", {}},
+             {" PARALLEL", "", {}},
+             {":2024", "", {}},
+             {" ", "", {}},
+             {"[folder/file.cc", "path", {}},
+             {":150]", "", {}},
+             {" insert", "", {}},
+             {" node", "", {}},
+             {":folder/file-op7", "path", {}},
+             {",", "", {}},
+             {" id", "", {}},
+             {":7", "", {}},
+             {" and", "", {}},
+             {" folder/file-op8", "path", {}},
+             {",", "", {}},
+             {" id", "", {}},
+             {":8", "", {}}}
     );
 }
 
