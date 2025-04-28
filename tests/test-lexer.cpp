@@ -174,6 +174,17 @@ auto create_lexer(std::unique_ptr<SchemaAST> schema_ast) -> ByteLexer {
             log_surgeon::cTokenUncaughtString
     );
 
+    // NewLine rule
+    if (lexer.m_symbol_id.find("newLine") == lexer.m_symbol_id.end()) {
+        lexer.m_symbol_id["newLine"] = lexer.m_symbol_id.size();
+        lexer.m_id_symbol[lexer.m_symbol_id["newLine"]] = "newLine";
+    }
+    lexer.add_rule(
+            lexer.m_symbol_id["newLine"],
+            std::move(std::make_unique<log_surgeon::finite_automata::RegexASTLiteral<
+                              log_surgeon::finite_automata::ByteNfaState>>('\n'))
+    );
+
     for (auto const& m_schema_var : schema_ast->m_schema_vars) {
         // For log-specific lexing: modify variable regex to contain a delimiter at the start.
         auto delimiter_group{make_unique<RegexASTGroupByte>(RegexASTGroupByte(lexer_delimiters))};
@@ -582,10 +593,10 @@ TEST_CASE("Test delimited variables", "[Lexer]") {
     constexpr string_view cVarSchema1{"function:[A-Za-z]+::[A-Za-z]+1"};
     constexpr string_view cVarName2{"path"};
     constexpr string_view cVarSchema2{R"(path:[a-zA-Z0-9_/\.\-]+/[a-zA-Z0-9_/\.\-]+)"};
-    constexpr string_view cTokenString1{"Word GeExecutor::Initialize1"};
+    constexpr string_view cTokenString1{"Word App::Action1"};
     constexpr string_view cTokenString2{"word::my/path/to/file.txt"};
-    constexpr string_view cTokenString3{"GeExecutor::Initialize"};
-    constexpr string_view cTokenString4{"::GeExecutor::Initialize1"};
+    constexpr string_view cTokenString3{"App::Action"};
+    constexpr string_view cTokenString4{"::App::Action1"};
     constexpr string_view cTokenString5{"folder/file-op71"};
     constexpr string_view cTokenString6{"[WARNING] PARALLEL:2024 [folder/file.cc:150] insert "
                                         "node:folder/file-op7, id:7 and folder/file-op8, id:8"};
@@ -599,7 +610,7 @@ TEST_CASE("Test delimited variables", "[Lexer]") {
     scan_and_validate_sequence(
             lexer,
             cTokenString1,
-            {{"Word", "", {}}, {" GeExecutor::Initialize1", cVarName1, {}}}
+            {{"Word", "", {}}, {" App::Action1", cVarName1, {}}}
     );
 
     CAPTURE(cVarSchema2);
@@ -612,13 +623,13 @@ TEST_CASE("Test delimited variables", "[Lexer]") {
     scan_and_validate_sequence(
             lexer,
             cTokenString3,
-            {{"GeExecutor", "", {}}, {":", "", {}}, {":Initialize", "", {}}}
+            {{"App", "", {}}, {":", "", {}}, {":Action", "", {}}}
     );
 
     scan_and_validate_sequence(
             lexer,
             cTokenString4,
-            {{":", "", {}}, {":GeExecutor::Initialize1", cVarName1, {}}}
+            {{":", "", {}}, {":App::Action1", cVarName1, {}}}
     );
 
     scan_and_validate_sequence(lexer, cTokenString5, {{cTokenString5, cVarName2, {}}});
@@ -643,6 +654,67 @@ TEST_CASE("Test delimited variables", "[Lexer]") {
              {",", "", {}},
              {" id", "", {}},
              {":8", "", {}}}
+    );
+}
+
+TEST_CASE(
+        "Test integer after static-text at start of newline when previous line ends in a variable",
+        "[Lexer]"
+) {
+    constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
+    constexpr string_view cInput{"1234567\nWord 1234567"};
+
+    Schema schema;
+    schema.add_variable(cRule, -1);
+
+    ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
+    scan_and_validate_sequence(
+            lexer,
+            cInput,
+            // NOTE: LogParser will realize "\nWord" is the start of a new log message
+            {{"1234567", "int", {}},
+             {"\n", "newLine", {}},
+             {"Word", "", {}},
+             {" 1234567", "int", {}}}
+    );
+}
+
+TEST_CASE(
+        "Test integer after static-text at start of newline when previous line ends in static-text",
+        "[Lexer]"
+) {
+    constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
+    constexpr string_view cInput{"1234567 abc\nWord 1234567"};
+
+    Schema schema;
+    schema.add_variable(cRule, -1);
+
+    ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
+    scan_and_validate_sequence(
+            lexer,
+            cInput,
+            // NOTE: LogParser will realize "\n1234567" is the start of a new log message
+            {{"1234567", "int", {}},
+             {" abc", "", {}},
+             {"\n", "newLine", {}},
+             {"Word", "", {}},
+             {" 1234567", "int", {}}}
+    );
+}
+
+TEST_CASE("Test integer at start of newline when previous line ends in static-text", "[Lexer]") {
+    constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
+    constexpr string_view cInput{"1234567 abc\n1234567"};
+
+    Schema schema;
+    schema.add_variable(cRule, -1);
+
+    ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
+    scan_and_validate_sequence(
+            lexer,
+            cInput,
+            {{"1234567", "int", {}}, {" abc", "", {}}, {"\n", "newLine", {}}, {"1234567", "int", {}}
+            }
     );
 }
 
