@@ -713,8 +713,81 @@ TEST_CASE("Test integer at start of newline when previous line ends in static-te
     scan_and_validate_sequence(
             lexer,
             cInput,
-            {{"1234567", "int", {}}, {" abc", "", {}}, {"\n", "newLine", {}}, {"1234567", "int", {}}
-            }
+            {{"1234567", "int", {}}, {" abc", "", {}}, {"\n1234567", "int", {}}}
+    );
+}
+
+TEST_CASE(
+        "Test integer + newline at start of newline when previous line ends in static-text",
+        "[Lexer]"
+) {
+    constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
+    constexpr string_view cInput{"1234567 abc\n1234567\n"};
+
+    Schema schema;
+    schema.add_variable(cRule, -1);
+
+    ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
+    scan_and_validate_sequence(
+            lexer,
+            cInput,
+            {{"1234567", "int", {}},
+             {" abc", "", {}},
+             {"\n1234567", "int", {}},
+             {"\n", "newLine", {}}}
+    );
+}
+
+/**
+ * @defgroup LexerTests Lexer-related Tests
+ * @ingroup Tests
+ * Group of tests related to Lexer behavior.
+ */
+
+/** @test
+ * @brief Verifies that integers are correctly tokenized at the start of a new line
+ *        when the previous line ends with a delimiter (space in this case).
+ *
+ * @details
+ * This test ensures the lexer handles newline boundaries correctly and does not
+ * incorrectly merge tokens across lines. It focuses on cases where an integer
+ * starts immediately after a newline that follows a delimiter.
+ *
+ * @section rule Rule
+ * @code
+ * int:\-{0,1}[0-9]+
+ * @endcode
+ *
+ * @section input Input
+ * @code
+ * 1234567 \n1234567
+ * @endcode
+ *
+ * @section expected Expected Tokens
+ * @code
+ * "1234567"   -> "int"
+ * " "         -> ""
+ * "\n1234567" -> "int"
+ * @endcode
+ *
+ * @note
+ * This test also checks that leading line breaks do not interfere with token
+ * classification, ensuring robustness in log parsing across multiple lines.
+ *
+ * @test Category: Lexer
+ */
+TEST_CASE("Test integer at start of newline when previous line ends in a delimiter", "[Lexer]") {
+    constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
+    constexpr string_view cInput{"1234567 \n1234567"};
+
+    Schema schema;
+    schema.add_variable(cRule, -1);
+
+    ByteLexer lexer{create_lexer(std::move(schema.release_schema_ast_ptr()))};
+    scan_and_validate_sequence(
+            lexer,
+            cInput,
+            {{"1234567", "int", {}}, {" ", "", {}}, {"\n1234567", "int", {}}}
     );
 }
 
