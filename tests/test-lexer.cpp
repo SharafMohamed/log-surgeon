@@ -738,13 +738,7 @@ TEST_CASE(
     );
 }
 
-/**
- * @defgroup LexerTests Lexer-related Tests
- * @ingroup Tests
- * Group of tests related to Lexer behavior.
- */
-
-/** @test
+/** @ingroup LexerTests
  * @brief Verifies that integers are correctly tokenized at the start of a new line
  *        when the previous line ends with a delimiter (space in this case).
  *
@@ -791,6 +785,9 @@ TEST_CASE("Test integer at start of newline when previous line ends in a delimit
     );
 }
 
+/** @ingroup LexerNewlineTests
+ * Testing
+*/
 TEST_CASE("Test capture group repetition and backtracking", "[Lexer]") {
     string const capture_name{"val"};
     constexpr string_view cVarName{"myVar"};
