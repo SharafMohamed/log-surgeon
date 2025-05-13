@@ -1,7 +1,3 @@
-#include <codecvt>
-#include <cstdint>
-#include <locale>
-#include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -12,7 +8,6 @@
 #include <fmt/core.h>
 
 #include <log_surgeon/Constants.hpp>
-#include <log_surgeon/finite_automata/RegexAST.hpp>
 #include <log_surgeon/Lexer.hpp>
 #include <log_surgeon/LogParser.hpp>
 #include <log_surgeon/Schema.hpp>
@@ -20,37 +15,15 @@
 #include <log_surgeon/types.hpp>
 
 using log_surgeon::capture_id_t;
-using log_surgeon::finite_automata::PrefixTree;
-using log_surgeon::lexers::ByteLexer;
 using log_surgeon::LogParser;
+using log_surgeon::rule_id_t;
 using log_surgeon::Schema;
-using log_surgeon::SchemaAST;
-using log_surgeon::SymbolId;
-using std::codecvt_utf8;
-using std::make_unique;
 using std::string;
 using std::string_view;
-using std::u32string;
 using std::unordered_map;
 using std::vector;
-using std::wstring_convert;
 
 using position_t = log_surgeon::reg_pos_t;
-
-using RegexASTCatByte
-        = log_surgeon::finite_automata::RegexASTCat<log_surgeon::finite_automata::ByteNfaState>;
-using RegexASTCaptureByte
-        = log_surgeon::finite_automata::RegexASTCapture<log_surgeon::finite_automata::ByteNfaState>;
-using RegexASTGroupByte
-        = log_surgeon::finite_automata::RegexASTGroup<log_surgeon::finite_automata::ByteNfaState>;
-using RegexASTLiteralByte
-        = log_surgeon::finite_automata::RegexASTLiteral<log_surgeon::finite_automata::ByteNfaState>;
-using RegexASTMultiplicationByte = log_surgeon::finite_automata::RegexASTMultiplication<
-        log_surgeon::finite_automata::ByteNfaState>;
-using RegexASTOrByte
-        = log_surgeon::finite_automata::RegexASTOr<log_surgeon::finite_automata::ByteNfaState>;
-using log_surgeon::rule_id_t;
-using log_surgeon::SchemaVarAST;
 
 namespace {
 /**
@@ -94,9 +67,7 @@ auto parse_and_validate_sequence(
                 std::string_view,
                 std::map<
                         capture_id_t,
-                        std::pair<
-                                std::vector<PrefixTree::position_t>,
-                                std::vector<PrefixTree::position_t>>>>> const&
+                        std::pair<std::vector<position_t>, std::vector<position_t>>>>> const&
                 expected_test_sequence
 ) -> void;
 
@@ -114,7 +85,7 @@ auto parse_and_validate_next_token(
         std::map<capture_id_t, std::pair<std::vector<position_t>, std::vector<position_t>>> const&
                 expected_capture_map
 ) -> void {
-    ByteLexer& lexer{log_parser.m_lexer};
+    auto& lexer{log_parser.m_lexer};
     CAPTURE(rule_name);
     CAPTURE(expected_input_match);
 
@@ -169,9 +140,7 @@ auto parse_and_validate_sequence(
                 std::string_view,
                 std::map<
                         capture_id_t,
-                        std::pair<
-                                std::vector<PrefixTree::position_t>,
-                                std::vector<PrefixTree::position_t>>>>> const&
+                        std::pair<std::vector<position_t>, std::vector<position_t>>>>> const&
                 expected_test_sequence
 ) -> void {
     auto& lexer{log_parser.m_lexer};
@@ -220,77 +189,7 @@ auto serialize_id_symbol_map(unordered_map<rule_id_t, string> const& map) -> str
 }
 }  // namespace
 
-TEST_CASE("Test the Schema class", "[Schema]") {
-    SECTION("Add a number variable to schema") {
-        Schema schema;
-        string const var_name = "myNumber";
-        string const var_schema = var_name + string(":") + string("123");
-        schema.add_variable(string_view(var_schema), -1);
-
-        auto const schema_ast = schema.release_schema_ast_ptr();
-        REQUIRE(schema_ast->m_schema_vars.size() == 1);
-        REQUIRE(schema.release_schema_ast_ptr()->m_schema_vars.empty());
-
-        auto& schema_var_ast_ptr = schema_ast->m_schema_vars.at(0);
-        REQUIRE(nullptr != schema_var_ast_ptr);
-        auto& schema_var_ast = dynamic_cast<SchemaVarAST&>(*schema_var_ast_ptr);
-        REQUIRE(var_name == schema_var_ast.m_name);
-
-        REQUIRE_NOTHROW([&]() {
-            (void)dynamic_cast<RegexASTCatByte&>(*schema_var_ast.m_regex_ptr);
-        }());
-    }
-
-    SECTION("Add a capture variable to schema") {
-        Schema schema;
-        std::string const var_name = "capture";
-        string const var_schema = var_name + string(":") + string("u(?<uID>[0-9]+)");
-        schema.add_variable(var_schema, -1);
-
-        auto const schema_ast = schema.release_schema_ast_ptr();
-        REQUIRE(schema_ast->m_schema_vars.size() == 1);
-        REQUIRE(schema.release_schema_ast_ptr()->m_schema_vars.empty());
-
-        auto& schema_var_ast_ptr = schema_ast->m_schema_vars.at(0);
-        REQUIRE(nullptr != schema_var_ast_ptr);
-        auto& schema_var_ast = dynamic_cast<SchemaVarAST&>(*schema_var_ast_ptr);
-        REQUIRE(var_name == schema_var_ast.m_name);
-
-        auto const* regex_ast_cat_ptr
-                = dynamic_cast<RegexASTCatByte*>(schema_var_ast.m_regex_ptr.get());
-        REQUIRE(nullptr != regex_ast_cat_ptr);
-        REQUIRE(nullptr != regex_ast_cat_ptr->get_left());
-        REQUIRE(nullptr != regex_ast_cat_ptr->get_right());
-
-        auto const* regex_ast_literal
-                = dynamic_cast<RegexASTLiteralByte const*>(regex_ast_cat_ptr->get_left());
-        REQUIRE(nullptr != regex_ast_literal);
-        REQUIRE('u' == regex_ast_literal->get_character());
-
-        auto const* regex_ast_capture
-                = dynamic_cast<RegexASTCaptureByte const*>(regex_ast_cat_ptr->get_right());
-        REQUIRE(nullptr != regex_ast_capture);
-        REQUIRE("uID" == regex_ast_capture->get_capture_name());
-
-        auto const* regex_ast_multiplication_ast = dynamic_cast<RegexASTMultiplicationByte*>(
-                regex_ast_capture->get_capture_regex_ast().get()
-        );
-        REQUIRE(nullptr != regex_ast_multiplication_ast);
-        REQUIRE(1 == regex_ast_multiplication_ast->get_min());
-        REQUIRE(0 == regex_ast_multiplication_ast->get_max());
-        REQUIRE(regex_ast_multiplication_ast->is_infinite());
-
-        auto const* regex_ast_group_ast
-                = dynamic_cast<RegexASTGroupByte*>(regex_ast_multiplication_ast->get_operand().get()
-                );
-        REQUIRE(false == regex_ast_group_ast->is_wildcard());
-        REQUIRE(1 == regex_ast_group_ast->get_ranges().size());
-        REQUIRE('0' == regex_ast_group_ast->get_ranges().at(0).first);
-        REQUIRE('9' == regex_ast_group_ast->get_ranges().at(0).second);
-    }
-}
-
-TEST_CASE("Test Lexer without capture groups", "[Lexer]") {
+TEST_CASE("Test log parser without capture groups", "[LogParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     constexpr string_view cVarName{"myVar"};
     constexpr string_view cVarSchema{"myVar:userID=123"};
@@ -301,10 +200,8 @@ TEST_CASE("Test Lexer without capture groups", "[Lexer]") {
     Schema schema;
     schema.add_delimiters(cDelimitersSchema);
     schema.add_variable(cVarSchema, -1);
-
     LogParser log_parser{std::move(schema.release_schema_ast_ptr())};
 
-    CAPTURE(cVarSchema);
     parse_and_validate_sequence(log_parser, cTokenString1, {{cTokenString1, cVarName, {}}});
     parse_and_validate_sequence(
             log_parser,
@@ -318,7 +215,7 @@ TEST_CASE("Test Lexer without capture groups", "[Lexer]") {
     );
 }
 
-TEST_CASE("Test Lexer with capture groups", "[Lexer]") {
+TEST_CASE("Test log parser with capture groups", "[LogParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     constexpr string_view cVarName{"myVar"};
     constexpr string_view cCaptureName{"uid"};
@@ -333,7 +230,7 @@ TEST_CASE("Test Lexer with capture groups", "[Lexer]") {
     schema.add_variable(cVarSchema, -1);
     LogParser log_parser{std::move(schema.release_schema_ast_ptr())};
 
-    ByteLexer& lexer{log_parser.m_lexer};
+    auto& lexer{log_parser.m_lexer};
 
     string const var_name{cVarName};
     REQUIRE(lexer.m_symbol_id.contains(var_name));
@@ -376,7 +273,7 @@ TEST_CASE("Test Lexer with capture groups", "[Lexer]") {
     );
 }
 
-TEST_CASE("Test CLP default schema", "[Lexer]") {
+TEST_CASE("Test log parser with CLP default schema", "[LogParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     string const capture_name{"val"};
     constexpr string_view cVarName1{"firstTimestamp"};
@@ -428,7 +325,7 @@ TEST_CASE("Test CLP default schema", "[Lexer]") {
 
 TEST_CASE(
         "Test integer after static-text at start of newline when previous line ends in a variable",
-        "[Lexer]"
+        "[LogParser]"
 ) {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
@@ -452,7 +349,7 @@ TEST_CASE(
 
 TEST_CASE(
         "Test integer after static-text at start of newline when previous line ends in static-text",
-        "[Lexer]"
+        "[LogParser]"
 ) {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
@@ -475,7 +372,10 @@ TEST_CASE(
     );
 }
 
-TEST_CASE("Test integer at start of newline when previous line ends in static-text", "[Lexer]") {
+TEST_CASE(
+        "Test integer at start of newline when previous line ends in static-text",
+        "[LogParser]"
+) {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
     constexpr string_view cInput{"1234567 abc\n1234567"};
@@ -494,7 +394,7 @@ TEST_CASE("Test integer at start of newline when previous line ends in static-te
 
 TEST_CASE(
         "Test integer + newline at start of newline when previous line ends in static-text",
-        "[Lexer]"
+        "[LogParser]"
 ) {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
@@ -515,7 +415,7 @@ TEST_CASE(
     );
 }
 
-TEST_CASE("Test capture group repetition and backtracking", "[Lexer]") {
+TEST_CASE("Test capture group repetition and backtracking", "[LogParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     string const capture_name{"val"};
     constexpr string_view cVarName{"myVar"};
