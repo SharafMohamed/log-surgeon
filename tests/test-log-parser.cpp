@@ -306,6 +306,7 @@ TEST_CASE("Test log parser with CLP default schema", "[LogParser]") {
     constexpr string_view cTokenString4{"abc"};
     constexpr string_view cTokenString5{"userID=123"};
     constexpr string_view cTokenString6{"user123"};
+    constexpr string_view cTokenString7{"123 2012-12-12 12:12:12.123"};
     std::pair<std::vector<PrefixTree::position_t>, std::vector<PrefixTree::position_t>> const
             capture_positions{{7}, {10}};
 
@@ -331,6 +332,11 @@ TEST_CASE("Test log parser with CLP default schema", "[LogParser]") {
               {{log_parser.m_lexer.m_symbol_id.at(capture_name), capture_positions}}}}
     );
     parse_and_validate_sequence(log_parser, cTokenString6, {{cTokenString6, cVarName6, {}}});
+    parse_and_validate_sequence(
+            log_parser,
+            cTokenString7,
+            {{cTokenString2, cVarName2, {}}, {" 2012-12-12 12:12:12.123", "timestamp", {}}}
+    );
 }
 
 TEST_CASE("Test log parser with delimited variables", "[LogParser]") {

@@ -85,8 +85,6 @@ auto LogParser::add_rules(std::unique_ptr<SchemaAST> schema_ast) -> void {
                             std::move(newline_timestamp_regex_ast)
                     )
             );
-            // prevent timestamps from going into the dictionary
-            continue;
         }
         // transform '.' from any-character into any non-delimiter character
         rule->m_regex_ptr->remove_delimiters_from_wildcard(delimiters);
