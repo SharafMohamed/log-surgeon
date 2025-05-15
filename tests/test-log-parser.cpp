@@ -582,3 +582,29 @@ TEST_CASE("Test capture group repetition and backtracking", "[LogParser]") {
     );
     // TODO: add backtracking case
 }
+
+TEST_CASE("Midline timestamp log", "[LogParser]") {
+    constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
+    constexpr string_view cVarName1{"timestamp"};
+    constexpr string_view cVarSchema1{
+            R"(timestamp:\d{4}\-\d{2}\-\d{2}:\d{2}:\d{2}:\d{2}\.\d{3}\.\d{3})"
+    };
+
+    constexpr string_view cLog{"[ERROR] DEVICE(123):2012-11-10:01:02:03.123.456"};
+
+    std::pair<std::vector<PrefixTree::position_t>, std::vector<PrefixTree::position_t>> const
+            capture_positions{{7}, {10}};
+
+    Schema schema;
+    schema.add_delimiters(cDelimitersSchema);
+    schema.add_variable(cVarSchema1, -1);
+    LogParser log_parser{std::move(schema.release_schema_ast_ptr())};
+
+    parse_and_validate_sequence(
+            log_parser,
+            cLog,
+            {{"[ERROR]", log_surgeon::cTokenUncaughtString, {}},
+             {" DEVICE(123)", log_surgeon::cTokenUncaughtString, {}},
+             {":2012-11-10:01:02:03.123.456", cVarName1, {}}}
+    );
+}
