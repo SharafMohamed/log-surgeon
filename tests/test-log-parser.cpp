@@ -285,7 +285,7 @@ TEST_CASE("Test log parser with capture groups", "[LogParser]") {
 TEST_CASE("Test log parser with CLP default schema", "[LogParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     string const capture_name{"val"};
-    constexpr string_view cVarName1{"firstTimestamp"};
+    constexpr string_view cVarName1{"timestamp"};
     constexpr string_view cVarSchema1{
             R"(timestamp:[0-9]{4}\-[0-9]{2}\-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}[,\.][0-9]{0,3})"
     };
@@ -560,10 +560,11 @@ TEST_CASE(
  */
 TEST_CASE("Test capture group repetition and backtracking", "[LogParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
-    string const capture_name{"val"};
     constexpr string_view cVarName{"myVar"};
     constexpr string_view cVarSchema{"myVar:([A-Za-z]+=(?<val>[a-zA-Z0-9]+),){4}"};
+
     constexpr string_view cTokenString{"userID=123,age=30,height=70,weight=100,"};
+    string const capture_name{"val"};
     std::pair<std::vector<PrefixTree::position_t>, std::vector<PrefixTree::position_t>> const
             capture_positions{{35, 25, 15, 7}, {37, 27, 17, 10}};
 
@@ -585,15 +586,22 @@ TEST_CASE("Test capture group repetition and backtracking", "[LogParser]") {
 
 TEST_CASE("Midline timestamp log", "[LogParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
-    constexpr string_view cVarName1{"timestamp"};
+    constexpr string_view cVarName1{"header"};
     constexpr string_view cVarSchema1{
-            R"(timestamp:\d{4}\-\d{2}\-\d{2}:\d{2}:\d{2}:\d{2}\.\d{3}\.\d{3})"
+            R"(header:\n{0,1}\[(?<verbosity>.*)\] DEVICE\((?<deviceId>\d+)\):)"
+            R"((?<timestamp>\d{4}\-\d{2}\-\d{2}:\d{2}:\d{2}:\d{2}\.\d{3}\.\d{3}))"
     };
 
-    constexpr string_view cLog{"[ERROR] DEVICE(123):2012-11-10:01:02:03.123.456"};
-
+    constexpr string_view cLog{"[ERROR] DEVICE(123):2012-11-10:01:02:03.123.456 text"};
+    string const capture_name1{"verbosity"};
+    string const capture_name2{"deviceId"};
+    string const capture_name3{"timestamp"};
     std::pair<std::vector<PrefixTree::position_t>, std::vector<PrefixTree::position_t>> const
-            capture_positions{{7}, {10}};
+            capture_positions1{{1}, {6}};
+    std::pair<std::vector<PrefixTree::position_t>, std::vector<PrefixTree::position_t>> const
+            capture_positions2{{15}, {18}};
+    std::pair<std::vector<PrefixTree::position_t>, std::vector<PrefixTree::position_t>> const
+            capture_positions3{{20}, {47}};
 
     Schema schema;
     schema.add_delimiters(cDelimitersSchema);
@@ -603,8 +611,15 @@ TEST_CASE("Midline timestamp log", "[LogParser]") {
     parse_and_validate_sequence(
             log_parser,
             cLog,
-            {{"[ERROR]", log_surgeon::cTokenUncaughtString, {}},
-             {" DEVICE(123)", log_surgeon::cTokenUncaughtString, {}},
-             {":2012-11-10:01:02:03.123.456", cVarName1, {}}}
+            {{"[ERROR] DEVICE(123):2012-11-10:01:02:03.123.456",
+              cVarName1,
+              {{log_parser.m_lexer.m_symbol_id.at(capture_name1), capture_positions1},
+               {log_parser.m_lexer.m_symbol_id.at(capture_name2), capture_positions2},
+               {log_parser.m_lexer.m_symbol_id.at(capture_name3), capture_positions3}}},
+             {" text", log_surgeon::cTokenUncaughtString, {}}}
     );
+
+    auto const& log_event_view{log_parser.get_log_event_view()};
+    REQUIRE(nullptr != log_event_view.get_timestamp());
+    REQUIRE("2012-11-10:01:02:03.123.456" == log_event_view.get_timestamp()->to_string_view());
 }

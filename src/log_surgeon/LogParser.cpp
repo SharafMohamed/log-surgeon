@@ -62,7 +62,7 @@ auto LogParser::add_rules(std::unique_ptr<SchemaAST> schema_ast) -> void {
     add_token("newLine", '\n');
     for (unique_ptr<ParserAST> const& parser_ast : schema_ast->m_schema_vars) {
         auto* rule = dynamic_cast<SchemaVarAST*>(parser_ast.get());
-        if (rule->m_name == "timestamp") {
+        if (rule->m_name == "header") {
             unique_ptr<RegexAST<ByteNfaState>> first_timestamp_regex_ast(rule->m_regex_ptr->clone()
             );
             unique_ptr<RegexASTLiteral<ByteNfaState>> r1
@@ -132,13 +132,11 @@ auto LogParser::parse(LogParser::ParsingAction& parsing_action) -> ErrorCode {
                 return err;
             }
             next_token = optional_next_token.value();
-            if (false == output_buffer->has_timestamp()
-                && next_token.m_type_ids_ptr->at(0) == (uint32_t)SymbolId::TokenNewlineTimestamp)
+            if (false == output_buffer->has_header()
+                && next_token.m_type_ids_ptr->at(0) == (uint32_t)(SymbolId::TokenHeader))
             {
-                // TODO: combine the below with found_start_of_next_message
-                // into 1 function
-                // Increment by 1 because the '\n' character is not part of the
-                // next log message
+                // TODO: combine the below with found_start_of_next_message into 1 function
+                // Increment by 1 because the '\n' character is not part of the next log message
                 m_start_of_log_message = next_token;
                 if (m_start_of_log_message.m_start_pos == m_start_of_log_message.m_buffer_size - 1)
                 {
@@ -164,14 +162,12 @@ auto LogParser::parse(LogParser::ParsingAction& parsing_action) -> ErrorCode {
             parsing_action = ParsingAction::CompressAndFinish;
             return ErrorCode::Success;
         }
-        if (next_token.m_type_ids_ptr->at(0) == (uint32_t)SymbolId::TokenFirstTimestamp
-            || next_token.m_type_ids_ptr->at(0) == (uint32_t)SymbolId::TokenNewlineTimestamp)
-        {
-            output_buffer->set_has_timestamp(true);
+        if (next_token.m_type_ids_ptr->at(0) == (uint32_t)SymbolId::TokenHeader) {
+            output_buffer->set_has_header(true);
             output_buffer->set_token(0, next_token);
             output_buffer->set_pos(1);
         } else {
-            output_buffer->set_has_timestamp(false);
+            output_buffer->set_has_header(false);
             output_buffer->set_token(1, next_token);
             output_buffer->set_pos(2);
         }
@@ -187,16 +183,14 @@ auto LogParser::parse(LogParser::ParsingAction& parsing_action) -> ErrorCode {
         output_buffer->set_curr_token(next_token);
         auto token_type = next_token.m_type_ids_ptr->at(0);
         bool found_start_of_next_message
-                = (output_buffer->has_timestamp()
-                   && token_type == (uint32_t)SymbolId::TokenNewlineTimestamp)
-                  || (!output_buffer->has_timestamp() && next_token.get_char(0) == '\n'
+                = (output_buffer->has_header() && token_type == (uint32_t)SymbolId::TokenHeader)
+                  || (!output_buffer->has_header() && next_token.get_char(0) == '\n'
                       && token_type != (uint32_t)SymbolId::TokenNewline);
         if (token_type == (uint32_t)SymbolId::TokenEnd) {
             parsing_action = ParsingAction::CompressAndFinish;
             return ErrorCode::Success;
         }
-        if (false == output_buffer->has_timestamp()
-            && token_type == (uint32_t)SymbolId::TokenNewline)
+        if (false == output_buffer->has_header() && token_type == (uint32_t)SymbolId::TokenNewline)
         {
             m_input_buffer.set_consumed_pos(output_buffer->get_curr_token().m_end_pos);
             output_buffer->advance_to_next_token();
@@ -245,7 +239,7 @@ auto LogParser::get_next_symbol() -> std::pair<ErrorCode, std::optional<Token>> 
 
 auto LogParser::generate_log_event_view_metadata() -> void {
     uint32_t start = 0;
-    if (false == m_log_event_view->m_log_output_buffer->has_timestamp()) {
+    if (false == m_log_event_view->m_log_output_buffer->has_header()) {
         start = 1;
     }
     uint32_t first_newline_pos{0};
@@ -256,9 +250,9 @@ auto LogParser::generate_log_event_view_metadata() -> void {
             first_newline_pos = i;
         }
     }
-    // To be a multiline log there must be at least one token between the
-    // newline token and the last token in the output buffer.
-    if (m_log_event_view->m_log_output_buffer->has_timestamp() && 0 < first_newline_pos
+    // To be a multiline log there must be at least one token between the newline token and the last
+    // token in the output buffer.
+    if (m_log_event_view->m_log_output_buffer->has_header() && 0 < first_newline_pos
         && first_newline_pos + 1 < m_log_event_view->m_log_output_buffer->pos())
     {
         m_log_event_view->set_multiline(true);

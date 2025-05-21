@@ -24,15 +24,19 @@ public:
     auto advance_to_next_token() -> void;
 
     auto reset() -> void {
-        m_has_timestamp = false;
+        m_timestamp = nullptr;
         m_has_delimiters = false;
         m_storage.reset();
     }
 
-    auto set_has_timestamp(bool has_timestamp) -> void { m_has_timestamp = has_timestamp; }
+    auto set_has_header(const bool has_header) -> void { m_has_header = has_header; }
 
-    [[nodiscard]] auto has_timestamp() const -> bool { return m_has_timestamp; }
+    [[nodiscard]] auto has_header() const -> bool { return m_has_header; }
+    
+    auto set_timestamp(Token* timestamp) -> void { m_timestamp = timestamp; }
 
+    [[nodiscard]] auto get_timestamp() const -> Token* { return m_timestamp; }
+    
     auto set_has_delimiters(bool has_delimiters) -> void { m_has_delimiters = has_delimiters; }
 
     [[nodiscard]] auto has_delimiters() const -> bool { return m_has_delimiters; }
@@ -58,7 +62,8 @@ public:
     [[nodiscard]] auto size() const -> uint32_t { return m_storage.size(); }
 
 private:
-    bool m_has_timestamp{false};
+    bool m_has_header{false};
+    Token* m_timestamp{nullptr};
     bool m_has_delimiters{false};
     // contains the static and dynamic Token buffers
     Buffer<Token> m_storage{};
