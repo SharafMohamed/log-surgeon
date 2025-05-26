@@ -389,7 +389,7 @@ TEST_CASE("Test log parser with capture groups", "[LogParser]") {
  * @section schema Schema Definition
  * @code
  * delimiters: \n\r\[:,)
- * firstTimestamp: [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}[,\.][0-9]{0,3}
+ * timestamp: [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}[,\.][0-9]{0,3}
  * int: -{0,1}[0-9]+
  * float: -{0,1}[0-9]+\.[0-9]+
  * hex: [a-fA-F]+
@@ -409,7 +409,7 @@ TEST_CASE("Test log parser with capture groups", "[LogParser]") {
  *
  * @section expected Example Output
  * @code
- * "2012-12-12 12:12:12.123" -> "firstTimestamp"
+ * "2012-12-12 12:12:12.123" -> "timestamp"
  * "123"                     -> "int"
  * "123.123"                 -> "float"
  * "abc"                     -> "hex"

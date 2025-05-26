@@ -62,44 +62,31 @@ auto LogParser::add_rules(std::unique_ptr<SchemaAST> schema_ast) -> void {
     add_token("newLine", '\n');
     for (unique_ptr<ParserAST> const& parser_ast : schema_ast->m_schema_vars) {
         auto* rule = dynamic_cast<SchemaVarAST*>(parser_ast.get());
-        if (rule->m_name == "header") {
-            unique_ptr<RegexAST<ByteNfaState>> first_timestamp_regex_ast(rule->m_regex_ptr->clone()
-            );
-            unique_ptr<RegexASTLiteral<ByteNfaState>> r1
-                    = make_unique<RegexASTLiteral<ByteNfaState>>(utf8::cCharStartOfFile);
-            add_rule(
-                    "firstTimestamp",
-                    make_unique<RegexASTCat<ByteNfaState>>(
-                            std::move(r1),
-                            std::move(first_timestamp_regex_ast)
-                    )
-            );
-            unique_ptr<RegexAST<ByteNfaState>> newline_timestamp_regex_ast(rule->m_regex_ptr->clone(
-            ));
-            unique_ptr<RegexASTLiteral<ByteNfaState>> r2
-                    = make_unique<RegexASTLiteral<ByteNfaState>>('\n');
-            add_rule(
-                    "newLineTimestamp",
-                    make_unique<RegexASTCat<ByteNfaState>>(
-                            std::move(r2),
-                            std::move(newline_timestamp_regex_ast)
-                    )
-            );
-        }
-        // transform '.' from any-character into any non-delimiter character
         rule->m_regex_ptr->remove_delimiters_from_wildcard(delimiters);
-
-        // check if regex contains a delimiter
         std::array<bool, cSizeOfUnicode> is_possible_input{};
         rule->m_regex_ptr->set_possible_inputs_to_true(is_possible_input);
 
-        // For log-specific lexing: modify variable regex to contain a delimiter at the start.
-        unique_ptr<RegexASTGroup<ByteNfaState>> delimiter_group
-                = make_unique<RegexASTGroup<ByteNfaState>>(RegexASTGroup<ByteNfaState>(delimiters));
-        rule->m_regex_ptr = make_unique<RegexASTCat<ByteNfaState>>(
-                std::move(delimiter_group),
-                std::move(rule->m_regex_ptr)
-        );
+        if (rule->m_name == "header") {
+            // Need to add a special character to specify this character in a schema file e.g. \B
+            auto start_of_file_regex = make_unique<RegexASTMultiplication<ByteNfaState>>(
+                    make_unique<RegexASTLiteral<ByteNfaState>>(utf8::cCharStartOfFile),
+                    0,
+                    1
+            );
+            rule->m_regex_ptr = make_unique<RegexASTCat<ByteNfaState>>(
+                    std::move(start_of_file_regex),
+                    std::move(rule->m_regex_ptr)
+            );
+        } else {
+            // For log-specific lexing: modify variable regex to contain a delimiter at the start.
+            auto delimiter_group = make_unique<RegexASTGroup<ByteNfaState>>(
+                    RegexASTGroup<ByteNfaState>(delimiters)
+            );
+            rule->m_regex_ptr = make_unique<RegexASTCat<ByteNfaState>>(
+                    std::move(delimiter_group),
+                    std::move(rule->m_regex_ptr)
+            );
+        }
 
         add_rule(rule->m_name, std::move(rule->m_regex_ptr));
     }

@@ -15,7 +15,6 @@ Parser<TypedNfaState, TypedDfaState>::Parser() {
     m_lexer.m_symbol_id[cTokenInt] = (uint32_t)SymbolId::TokenInt;
     m_lexer.m_symbol_id[cTokenFloat] = (uint32_t)SymbolId::TokenFloat;
     m_lexer.m_symbol_id[cTokenHex] = (uint32_t)SymbolId::TokenHex;
-    m_lexer.m_symbol_id[cTokenTimestamp] = (uint32_t)SymbolId::TokenTimestamp;
     m_lexer.m_symbol_id[cTokenHeader] = (uint32_t)SymbolId::TokenHeader;
     m_lexer.m_symbol_id[cTokenNewline] = (uint32_t)SymbolId::TokenNewline;
 
@@ -24,7 +23,6 @@ Parser<TypedNfaState, TypedDfaState>::Parser() {
     m_lexer.m_id_symbol[(uint32_t)SymbolId::TokenInt] = cTokenInt;
     m_lexer.m_id_symbol[(uint32_t)SymbolId::TokenFloat] = cTokenFloat;
     m_lexer.m_id_symbol[(uint32_t)SymbolId::TokenHex] = cTokenHex;
-    m_lexer.m_id_symbol[(uint32_t)SymbolId::TokenTimestamp] = cTokenTimestamp;
     m_lexer.m_id_symbol[(uint32_t)SymbolId::TokenHeader] = cTokenHeader;
     m_lexer.m_id_symbol[(uint32_t)SymbolId::TokenNewline] = cTokenNewline;
 }
