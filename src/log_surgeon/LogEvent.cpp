@@ -28,7 +28,7 @@ auto LogEventView::reset() -> void {
     m_multiline = false;
 }
 
-[[nodiscard]] auto LogEventView::get_timestamp() const -> Token* {
+[[nodiscard]] auto LogEventView::get_timestamp() const -> std::string {
     return m_log_output_buffer->get_timestamp();
 }
 
@@ -69,7 +69,7 @@ LogEvent::LogEvent(LogEventView const& src) : LogEventView{src.get_log_parser()}
     m_log_output_buffer->set_timestamp(src.m_log_output_buffer->get_timestamp());
     m_log_output_buffer->set_has_delimiters(src.m_log_output_buffer->has_delimiters());
     uint32_t start = 0;
-    if (nullptr == src.get_timestamp()) {
+    if ("" == src.get_timestamp()) {
         start = 1;
     }
     uint32_t buffer_size{0};

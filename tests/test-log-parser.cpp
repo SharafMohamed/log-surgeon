@@ -960,6 +960,7 @@ TEST_CASE("Midline timestamp log", "[LogParser]") {
     );
 
     auto const& log_event_view{log_parser.get_log_event_view()};
-    REQUIRE(nullptr != log_event_view.get_timestamp());
-    REQUIRE("2012-11-10:01:02:03.123.456" == log_event_view.get_timestamp()->to_string_view());
+    REQUIRE(false == log_event_view.get_timestamp().empty());
+    // TODO: this wont work for now until these tests are updated to use log parser directly
+    REQUIRE("2012-11-10:01:02:03.123.456" == log_event_view.get_timestamp());
 }
