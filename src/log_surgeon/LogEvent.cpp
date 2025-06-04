@@ -54,7 +54,7 @@ auto LogEventView::get_logtype() const -> std::string {
         if (static_cast<uint32_t>(SymbolId::TokenUncaughtString) == rule_id) {
             logtype += token.to_string_view();
         } else {
-            bool const is_first_token{false == m_log_output_buffer->has_timestamp() && 1 == i};
+            bool const is_first_token{false == m_log_output_buffer->has_header() && 1 == i};
             if (static_cast<uint32_t>(SymbolId::TokenNewline) != rule_id && false == is_first_token)
             {
                 logtype += token.get_delimiter();

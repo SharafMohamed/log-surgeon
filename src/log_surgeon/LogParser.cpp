@@ -163,8 +163,8 @@ auto LogParser::parse(LogParser::ParsingAction& parsing_action) -> ErrorCode {
                         auto [start_reg_id, end_reg_id]{
                                 m_lexer.get_reg_ids_from_capture_id(capture_id).value()
                         };
-                        auto start_pos{next_token.get_reg_positions(start_reg_id)};
-                        auto end_pos{next_token.get_reg_positions(end_reg_id)};
+                        auto start_pos{next_token.get_reversed_reg_positions(start_reg_id)};
+                        auto end_pos{next_token.get_reversed_reg_positions(end_reg_id)};
                         auto timestamp{next_token.get_capture_string(start_pos[0], end_pos[0])};
                         output_buffer->set_timestamp(timestamp);
                     }
