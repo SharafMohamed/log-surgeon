@@ -90,7 +90,6 @@ auto parse_and_validate(
         REQUIRE(expected_logtype == event.get_logtype());
         REQUIRE(expected_timestamp_raw == event.get_timestamp());
 
-
         uint32_t event_offset{0};
         if (event.get_timestamp().empty()) {
             event_offset = 1;
@@ -837,3 +836,75 @@ TEST_CASE("Test capture group repetition and backtracking", "[LogParser]") {
     // TODO: add backtracking case
 }
 */
+
+/**
+ * @ingroup test_buffer_parser_header
+ *
+ * @brief Tests parsing a header from an input.
+ *
+ * @details
+ * This test verifies that if a line contains a header, the `BufferParser` correctly identifies the
+ * token.
+ *
+ * @section schema Schema Definition
+ * @code
+ * delimiters: \n\r\[:,)
+ * header:\n{0,1}\[(?<verbosity>.*)\]DEVICE\((?<deviceId>\d+)\): ...
+ * ... (?<timestamp>\d{4}\-\d{2}\-\d{2}:\d{2}:\d{2}:\d{2}\.\d{3}\.\d{3})
+ * @endcode
+ *
+ * @section input Test Input
+ * @code
+ * "[ERROR] DEVICE(123):2012-11-10:01:02:03.123.456 text"
+ * @endcode
+ *
+ * @section expected Expected Logtype
+ * @code
+ * "<header> text"
+ * @endcode
+ *
+ * @section expected Expected Tokenization
+ * @code
+ * "[ERROR] DEVICE(123):2012-11-10:01:02:03.123.456" -> "header" with:
+ *   "ERROR" -> "verbosity", "123" -> deviceId, "2012-11-10:01:02:03.123.456" -> "timestamp"
+ * " text" -> uncaught string
+ * @endcode
+ */
+TEST_CASE("Midline timestamp log", "[LogParser]") {
+    constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
+    constexpr string_view cVarSchema{
+            R"(header:\n{0,1}\[(?<verbosity>.*)\] DEVICE\((?<deviceId>\d+)\):)"
+            R"((?<timestamp>\d{4}\-\d{2}\-\d{2}:\d{2}:\d{2}:\d{2}\.\d{3}\.\d{3}))"
+    };
+    constexpr string_view cInput{"[ERROR] DEVICE(123):2012-11-10:01:02:03.123.456 text"};
+    std::pair<std::vector<PrefixTree::position_t>, std::vector<PrefixTree::position_t>> const
+            capture_positions1{{1}, {6}};
+    std::pair<std::vector<PrefixTree::position_t>, std::vector<PrefixTree::position_t>> const
+            capture_positions2{{15}, {18}};
+    std::pair<std::vector<PrefixTree::position_t>, std::vector<PrefixTree::position_t>> const
+            capture_positions3{{20}, {47}};
+
+    ExpectedEvent const expected_event{
+            .m_logtype{R"(<header> text)"},
+            .m_timestamp_raw{"2012-11-10:01:02:03.123.456"},
+            .m_tokens{
+                    {{"[ERROR] DEVICE(123):2012-11-10:01:02:03.123.456",
+                      "header",
+                      {{{"verbosity", {{1}, {6}}},
+                        {"deviceId", {{15}, {18}}},
+                        {"timestamp", {{20}, {47}}}}}}}
+            }
+    };
+
+    Schema schema;
+    schema.add_delimiters(cDelimitersSchema);
+    schema.add_variable(cVarSchema, -1);
+    BufferParser buffer_parser(std::move(schema.release_schema_ast_ptr()));
+
+    parse_and_validate(buffer_parser, cInput, {expected_event});
+
+    auto const& log_event_view{log_parser.get_log_event_view()};
+    REQUIRE(false == log_event_view.get_timestamp().empty());
+    // TODO: this wont work for now until these tests are updated to use log parser directly
+    REQUIRE("2012-11-10:01:02:03.123.456" == log_event_view.get_timestamp());
+}
