@@ -158,7 +158,44 @@ auto serialize_id_symbol_map(unordered_map<rule_id_t, string> const& map) -> str
 
 }  // namespace
 
-TEST_CASE("Test log parser without capture groups", "[LogParser]") {
+/**
+ * @ingroup test_buffer_parser_no_capture
+ *
+ * @brief Tests the buffer parser behavior when parsing variables without capture groups.
+ *
+ * @details
+ * This test verifies that the buffer parser correctly matches exact variable patterns when
+ * no capture groups are involved. It confirms the `BUfferParser`:
+ * - Recognizes a variable exactly matching the defined schema ("myVar:userID=123").
+ * - Treats close but non-matching strings as uncaught tokens.
+ * - Correctly classifies tokens that don't match any variable schema as uncaught strings.
+ *
+ * @section schema Schema Definition
+ * @code
+ * delimiters: \n\r\[:,)
+ * myVar:userID=123
+ * @endcode
+ *
+ * @section input Test Inputs
+ * @code
+ * "userID=123 userID=234 userID=123 123 userID=123"
+ * @endcode
+ *
+ * @section expected Expected Logtype
+ * @code
+ * "<myVar> userID=234 <myVar> 123 <myVar>"
+ * @endcode
+ *
+ * @section expected Expected Tokenization
+ * @code
+ * "userID=123" -> "myVar"
+ * " userID=234" -> uncaught string
+ * " userID=123" -> "myVar"
+ * " 123" -> uncaught string
+ * " userID=123" -> "myVar"
+ * @endcode
+ */
+TEST_CASE("Test buffer parser without capture groups", "[BufferParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     constexpr string_view cVarSchema{"myVar:userID=123"};
     constexpr string_view cInput{"userID=123 userID=234 userID=123 123 userID=123"};
@@ -247,10 +284,43 @@ TEST_CASE("Test log parser with CLP default schema", "[LogParser]") {
     parse_and_validate(buffer_parser, cInput, {expected_event});
 }
 
-TEST_CASE(
-        "Test integer after static-text at start of newline when previous line ends in a variable",
-        "[LogParser]"
-) {
+/**
+ * @ingroup test_buffer_parser_newline_vars
+ *
+ * @brief Test variable after static-text at the start of a newline when previous line ends in a
+ * variable.
+ *
+ * @details
+ * This test verifies that when a line ends with a variable token and the next line starts with
+ * static text followed by an integer variable, the `BufferParser` correctly recognizes the newline
+ * as a delimiter and parses the tokens appropriately.
+ *
+ * @section schema Schema Definition
+ * @code
+ * delimiters: \n\r\[:,)
+ * int: \-{0,1}[0-9]+
+ * @endcode
+ *
+ * @section input Input Example
+ * @code
+ * "1234567\nText 1234567"
+ * @endcode
+ *
+ * @section expected Expected Logtype
+ * @code
+ * "<int><newLine>"
+ * "Text <int>"
+ * @endcode
+ *
+ * @section expected Expected Tokenization
+ * @code
+ * "1234567" -> "int"
+ * "\n" -> "newLine"
+ * "Text" -> uncaught string
+ * " 1234567" -> "int"
+ * @endcode
+ */
+TEST_CASE("Test buffer parser first token after newline #1", "[BufferParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
     constexpr string_view cInput{"1234567\nText 1234567"};
@@ -273,10 +343,44 @@ TEST_CASE(
     parse_and_validate(buffer_parser, cInput, {expected_event1, expected_event2});
 }
 
-TEST_CASE(
-        "Test integer after static-text at start of newline when previous line ends in static-text",
-        "[LogParser]"
-) {
+/**
+ * @ingroup test_buffer_parser_newline_vars
+ *
+ * @brief Test variable after static-text at start of newline when previous line ends in
+ * static-text.
+ *
+ * @details
+ * This test verifies that when a line ends with static text and the next line starts with static
+ * text followed by an integer variable, the `BufferParser` identifies the newline properly and
+ * tokenizes the input correctly.
+ *
+ * @section schema Schema Definition
+ * @code
+ * delimiters: \n\r\[:,)
+ * int: \-{0,1}[0-9]+
+ * @endcode
+ *
+ * @section input Input Example
+ * @code
+ * "1234567 abc\nText 1234567"
+ * @endcode
+ *
+ * @section expected Expected Logtype
+ * @code
+ * "<int> abc<newLine>"
+ * "Text <int>"
+ * @endcode
+ *
+ * @section expected Expected Tokenization
+ * @code
+ * "1234567" -> "int"
+ * " abc" -> uncaught string
+ * "\n" -> "newLine"
+ * "Text" -> uncaught string
+ * " 1234567" -> "int"
+ * @endcode
+ */
+TEST_CASE("Test buffer parser first token after newline #2", "[BufferParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
     constexpr string_view cInput{"1234567 abc\nText 1234567"};
@@ -299,10 +403,41 @@ TEST_CASE(
     parse_and_validate(buffer_parser, cInput, {expected_event1, expected_event2});
 }
 
-TEST_CASE(
-        "Test integer at start of newline when previous line ends in static-text",
-        "[LogParser]"
-) {
+/**
+ * @ingroup test_buffer_parser_newline_vars
+ *
+ * @brief Test variable at start of newline when previous line ends in static-text.
+ *
+ * @details
+ * This test verifies that when a line ends with static text and the next line starts directly with
+ * an integer variable, the `BufferParser` treats the newline and variable token correctly.
+ *
+ * @section schema Schema Definition
+ * @code
+ * delimiters: \n\r\[:,)
+ * int: \-{0,1}[0-9]+
+ * @endcode
+ *
+ * @section input Input Example
+ * @code
+ * "1234567 abc\n1234567"
+ * @endcode
+ *
+ * @section expected Expected Logtype
+ * @code
+ * "<int> abc\n"
+ * "<int>"
+ * @endcode
+ *
+ * @section expected Expected Tokenization
+ * @code
+ * "1234567" -> "int"
+ * " abc" -> uncaught string
+ * "\n" -> uncaught string
+ * "1234567" -> "int"
+ * @endcode
+ */
+TEST_CASE("Test buffer parser first token after newline #3", "[BufferParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
     constexpr string_view cInput{"1234567 abc\n1234567"};
@@ -325,10 +460,44 @@ TEST_CASE(
     parse_and_validate(buffer_parser, cInput, {expected_event1, expected_event2});
 }
 
-TEST_CASE(
-        "Test integer + newline at start of newline when previous line ends in static-text",
-        "[LogParser]"
-) {
+/**
+ * @ingroup test_buffer_parser_newline_vars
+ *
+ * @brief Test variable followed by newline at start of newline when previous line ends in
+ * static-text.
+ *
+ * @details
+ * This test verifies that when a line ends with static text, and the next line contains an integer
+ * variable followed by a newline, the `BufferParser` correctly separates the tokens, recognizing
+ * the newline delimiter.
+ *
+ * @section schema Schema Definition
+ * @code
+ * delimiters: \n\r\[:,)
+ * int: \-{0,1}[0-9]+
+ * @endcode
+ *
+ * @section input Input Example
+ * @code
+ * "1234567 abc\n1234567\n"
+ * @endcode
+ *
+ * @section expected Expected Logtype
+ * @code
+ * "<int> abc\n"
+ * "<int><newLine>"
+ * @endcode
+ *
+ * @section expected Expected Tokenization
+ * @code
+ * "1234567" -> "int"
+ * " abc" -> uncaught string
+ * "\n" -> uncaught string
+ * "1234567" -> "int"
+ * "\n" -> "newLine"
+ * @endcode
+ */
+TEST_CASE("Test buffer parser first token after newline #4", "[BufferParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
     constexpr string_view cInput{"1234567 abc\n1234567\n"};
@@ -350,6 +519,71 @@ TEST_CASE(
     BufferParser buffer_parser{std::move(schema.release_schema_ast_ptr())};
 
     parse_and_validate(buffer_parser, cInput, {expected_event1, expected_event2, expected_event3});
+}
+
+TEST_CASE("Test log parser with delimited variables", "[LogParser]") {
+    constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
+    constexpr string_view cVarSchema1{"function:[A-Za-z]+::[A-Za-z]+1"};
+    constexpr string_view cVarSchema2{R"(path:[a-zA-Z0-9_/\.\-]+/[a-zA-Z0-9_/\.\-]+)"};
+    constexpr string_view cInput{
+            "[WARNING] A:2 [folder/file.cc:150] insert node:folder/file-op7, id:7 and "
+            "folder/file-op8, id:8\n"
+            "Perform App::Action App::Action1 ::App::Action::Action1 on word::my/path/to/file.txt"
+    };
+    ExpectedEvent const expected_event1{
+            .m_logtype{
+                    "[WARNING] A:2 [<path>:150] insert node:<path>, id:7 and <path>, id:8<newLine>"
+            },
+            .m_timestamp_raw{""},
+            .m_tokens{
+                    {{"[WARNING]", "", {}},
+                     {" A", "", {}},
+                     {":2", "", {}},
+                     {" ", "", {}},
+                     {"[folder/file.cc", "path", {}},
+                     {":150]", "", {}},
+                     {" insert", "", {}},
+                     {" node", "", {}},
+                     {":folder/file-op7", "path", {}},
+                     {",", "", {}},
+                     {" id", "", {}},
+                     {":7", "", {}},
+                     {" and", "", {}},
+                     {" folder/file-op8", "path", {}},
+                     {",", "", {}},
+                     {" id", "", {}},
+                     {":8", "", {}},
+                     {"\n", "newLine", {}}}
+            }
+    };
+    ExpectedEvent const expected_event2{
+            .m_logtype{"Perform App::Action <function> ::App::<function> on word::<path>"},
+            .m_timestamp_raw{""},
+            .m_tokens{
+                    {{"Perform", "", {}},
+                     {" App", "", {}},
+                     {":", "", {}},
+                     {":Action", "", {}},
+                     {" App::Action1", "function", {}},
+                     {" ", "", {}},
+                     {":", "", {}},
+                     {":App", "", {}},
+                     {":", "", {}},
+                     {":Action::Action1", "function", {}},
+                     {" on", "", {}},
+                     {" word", "", {}},
+                     {":", "", {}},
+                     {":my/path/to/file.txt", "path", {}}}
+            }
+    };
+
+    Schema schema;
+    schema.add_delimiters(cDelimitersSchema);
+    schema.add_variable(cVarSchema1, -1);
+    schema.add_variable(cVarSchema2, -1);
+    BufferParser buffer_parser{std::move(schema.release_schema_ast_ptr())};
+
+    parse_and_validate(buffer_parser, cInput, {expected_event1, expected_event2});
 }
 
 // TODO: fix this case:
