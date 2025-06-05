@@ -175,7 +175,7 @@ auto serialize_id_symbol_map(unordered_map<rule_id_t, string> const& map) -> str
  * myVar:userID=123
  * @endcode
  *
- * @section input Test Inputs
+ * @section input Test Input
  * @code
  * "userID=123 userID=234 userID=123 123 userID=123"
  * @endcode
@@ -237,7 +237,7 @@ TEST_CASE("Test buffer parser without capture groups", "[BufferParser]") {
  * myVar:userID=(?<uid>123)
  * @endcode
  *
- * @section input Test Inputs
+ * @section input Test Input
  * @code
  * "userID=123 userID=234 userID=123 123 userID=123"
  * @endcode
@@ -314,7 +314,7 @@ TEST_CASE("Test buffer parser with capture groups", "[BufferParser]") {
  * hasNumber: ={0,1}[^ \r\n=]*\d[^ \r\n=]*={0,1}
  * @endcode
  *
- * @section input Test Inputs
+ * @section input Test Input
  * @code
  * "2012-12-12 12:12:12.123 123 123.123 abc userID=123 text user123"
  * @endcode
@@ -397,7 +397,7 @@ TEST_CASE("Test buffer parser with CLP default schema", "[BufferParser]") {
  * int: \-{0,1}[0-9]+
  * @endcode
  *
- * @section input Input Example
+ * @section input Test Input
  * @code
  * "1234567\nText 1234567"
  * @endcode
@@ -418,7 +418,7 @@ TEST_CASE("Test buffer parser with CLP default schema", "[BufferParser]") {
  */
 TEST_CASE("Test buffer parser first token after newline #1", "[BufferParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
-    constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
+    constexpr string_view cVarSchema{R"(int:\-{0,1}[0-9]+)"};
     constexpr string_view cInput{"1234567\nText 1234567"};
     ExpectedEvent const expected_event1{
             .m_logtype{R"(<int><newLine>)"},
@@ -433,7 +433,7 @@ TEST_CASE("Test buffer parser first token after newline #1", "[BufferParser]") {
 
     Schema schema;
     schema.add_delimiters(cDelimitersSchema);
-    schema.add_variable(cRule, -1);
+    schema.add_variable(cVarSchema, -1);
     BufferParser buffer_parser{std::move(schema.release_schema_ast_ptr())};
 
     parse_and_validate(buffer_parser, cInput, {expected_event1, expected_event2});
@@ -456,7 +456,7 @@ TEST_CASE("Test buffer parser first token after newline #1", "[BufferParser]") {
  * int: \-{0,1}[0-9]+
  * @endcode
  *
- * @section input Input Example
+ * @section input Test Input
  * @code
  * "1234567 abc\nText 1234567"
  * @endcode
@@ -478,7 +478,7 @@ TEST_CASE("Test buffer parser first token after newline #1", "[BufferParser]") {
  */
 TEST_CASE("Test buffer parser first token after newline #2", "[BufferParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
-    constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
+    constexpr string_view cVarSchema{R"(int:\-{0,1}[0-9]+)"};
     constexpr string_view cInput{"1234567 abc\nText 1234567"};
     ExpectedEvent const expected_event1{
             .m_logtype{R"(<int> abc<newLine>)"},
@@ -493,7 +493,7 @@ TEST_CASE("Test buffer parser first token after newline #2", "[BufferParser]") {
 
     Schema schema;
     schema.add_delimiters(cDelimitersSchema);
-    schema.add_variable(cRule, -1);
+    schema.add_variable(cVarSchema, -1);
     BufferParser buffer_parser{std::move(schema.release_schema_ast_ptr())};
 
     parse_and_validate(buffer_parser, cInput, {expected_event1, expected_event2});
@@ -514,7 +514,7 @@ TEST_CASE("Test buffer parser first token after newline #2", "[BufferParser]") {
  * int: \-{0,1}[0-9]+
  * @endcode
  *
- * @section input Input Example
+ * @section input Test Input
  * @code
  * "1234567 abc\n1234567"
  * @endcode
@@ -535,7 +535,7 @@ TEST_CASE("Test buffer parser first token after newline #2", "[BufferParser]") {
  */
 TEST_CASE("Test buffer parser first token after newline #3", "[BufferParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
-    constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
+    constexpr string_view cVarSchema{R"(int:\-{0,1}[0-9]+)"};
     constexpr string_view cInput{"1234567 abc\n1234567"};
     ExpectedEvent const expected_event1{
             .m_logtype{"<int> abc\n"},
@@ -550,7 +550,7 @@ TEST_CASE("Test buffer parser first token after newline #3", "[BufferParser]") {
 
     Schema schema;
     schema.add_delimiters(cDelimitersSchema);
-    schema.add_variable(cRule, -1);
+    schema.add_variable(cVarSchema, -1);
     BufferParser buffer_parser{std::move(schema.release_schema_ast_ptr())};
 
     parse_and_validate(buffer_parser, cInput, {expected_event1, expected_event2});
@@ -573,7 +573,7 @@ TEST_CASE("Test buffer parser first token after newline #3", "[BufferParser]") {
  * int: \-{0,1}[0-9]+
  * @endcode
  *
- * @section input Input Example
+ * @section input Test Input
  * @code
  * "1234567 abc\n1234567\n"
  * @endcode
@@ -595,7 +595,7 @@ TEST_CASE("Test buffer parser first token after newline #3", "[BufferParser]") {
  */
 TEST_CASE("Test buffer parser first token after newline #4", "[BufferParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
-    constexpr string_view cRule{R"(int:\-{0,1}[0-9]+)"};
+    constexpr string_view cVarSchema{R"(int:\-{0,1}[0-9]+)"};
     constexpr string_view cInput{"1234567 abc\n1234567\n"};
     ExpectedEvent const expected_event1{
             .m_logtype{"<int> abc\n"},
@@ -611,7 +611,7 @@ TEST_CASE("Test buffer parser first token after newline #4", "[BufferParser]") {
 
     Schema schema;
     schema.add_delimiters(cDelimitersSchema);
-    schema.add_variable(cRule, -1);
+    schema.add_variable(cVarSchema, -1);
     BufferParser buffer_parser{std::move(schema.release_schema_ast_ptr())};
 
     parse_and_validate(buffer_parser, cInput, {expected_event1, expected_event2, expected_event3});
@@ -812,17 +812,49 @@ TEST_CASE("Test buffer parser with delimited variables", "[BufferParser]") {
 }
 
 // TODO: fix this case:
+/**
+ * @ingroup test_buffer_parser_newline_vars
+ *
+ * @brief Test capture group repetition and backtracking.
+ *
+ * @details
+ * This test checks `BufferParser`'s handling of a variable with a regex containing capture groups
+ * repeated multiple times. It verifies the positions of captured subgroups within the parsed token
+ * and ensures correct tokenization of the repeated pattern.
+ *
+ * @section schema Schema Definition
+ * @code
+ * delimiters: \n\r\[:,)
+ * myVar: ([A-Za-z]+=(?<val>[a-zA-Z0-9]+),){4}
+ * @endcode
+ *
+ * @section input Test Input
+ * @code
+ * "userID=123,age=30,height=70,weight=100,"
+ * @endcode
+ *
+* @section expected Expected Logtype
+ * @code
+ * "userID=<val>,age=<val>,height=<val>,weight=<val>,"
+ * @endcode
+ *
+ * @section expected Expected Tokenization
+ * @code
+ * "userID=123,age=30,height=70,weight=100," -> "keyValuePairs" with:
+ *   "123" -> "val", "30 -> "val", "70" -> "val", "100" -> "val"
+ * @endcode
+ */
 /*
-TEST_CASE("Test capture group repetition and backtracking", "[LogParser]") {
+TEST_CASE("Test buffer parser with capture group repetition and backtracking", "[BufferParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
-    constexpr string_view cVarSchema{"keyValuePair:([A-Za-z]+=(?<val>[a-zA-Z0-9]+),){4}"};
+    constexpr string_view cVarSchema{"keyValuePairs:([A-Za-z]+=(?<val>[a-zA-Z0-9]+),){4}"};
     constexpr string_view cInput{"userID=123,age=30,height=70,weight=100,"};
     ExpectedEvent const expected_event{
             .m_logtype{R"(userID=<val>,age=<val>,height=<val>,weight=<val>,)"},
             .m_timestamp_raw{""},
             .m_tokens{
                     {{"userID=123,age=30,height=70,weight=100,",
-                      "keyValuePair",
+                      "keyValuePairs",
                       {{{"val", {{35, 25, 15, 7}, {37, 27, 17, 10}}}}}}}
             }
     };
