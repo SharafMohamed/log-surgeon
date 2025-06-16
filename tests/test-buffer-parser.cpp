@@ -918,14 +918,15 @@ TEST_CASE("Midline timestamp log", "[LogParser]") {
             capture_positions3{{20}, {47}};
 
     ExpectedEvent const expected_event{
-            .m_logtype{R"(<verbosity> DEVICE(<deviceId>): text)"},
+            .m_logtype{R"( text)"},
             .m_timestamp_raw{"2012-11-10:01:02:03.123.456"},
             .m_tokens{
                     {{"[ERROR] DEVICE(123):2012-11-10:01:02:03.123.456",
                       "header",
                       {{{"verbosity", {{1}, {6}}},
                         {"deviceId", {{15}, {18}}},
-                        {"timestamp", {{20}, {47}}}}}}}
+                        {"timestamp", {{20}, {47}}}}}},
+                     {" text", "", {}}}
             }
     };
 
@@ -935,9 +936,4 @@ TEST_CASE("Midline timestamp log", "[LogParser]") {
     BufferParser buffer_parser(std::move(schema.release_schema_ast_ptr()));
 
     parse_and_validate(buffer_parser, cInput, {expected_event});
-
-    auto const& log_event_view{buffer_parser.get_log_parser().get_log_event_view()};
-    REQUIRE(false == log_event_view.get_timestamp().empty());
-    // TODO: this wont work for now until these tests are updated to use log parser directly
-    REQUIRE("2012-11-10:01:02:03.123.456" == log_event_view.get_timestamp());
 }
