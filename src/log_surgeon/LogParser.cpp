@@ -120,7 +120,8 @@ auto LogParser::parse(LogParser::ParsingAction& parsing_action) -> ErrorCode {
             }
             next_token = optional_next_token.value();
             if (false == output_buffer->has_header()
-                && next_token.m_type_ids_ptr->at(0) == (uint32_t)(SymbolId::TokenHeader))
+                && next_token.m_type_ids_ptr->at(0) == static_cast<uint32_t>(SymbolId::TokenHeader)
+                && '\n' == next_token.get_char(0))
             {
                 // TODO: combine the below with found_start_of_next_message into 1 function
                 // Increment by 1 because the '\n' character is not part of the next log message
@@ -160,9 +161,8 @@ auto LogParser::parse(LogParser::ParsingAction& parsing_action) -> ErrorCode {
             if (optional_capture_ids.has_value()) {
                 for (auto const capture_id : optional_capture_ids.value()) {
                     if (m_lexer.m_id_symbol[capture_id].starts_with("timestamp")) {
-                        auto [start_reg_id, end_reg_id]{
-                                m_lexer.get_reg_ids_from_capture_id(capture_id).value()
-                        };
+                        auto [start_reg_id,
+                              end_reg_id]{m_lexer.get_reg_ids_from_capture_id(capture_id).value()};
                         auto start_pos{next_token.get_reversed_reg_positions(start_reg_id)};
                         auto end_pos{next_token.get_reversed_reg_positions(end_reg_id)};
                         auto timestamp{next_token.get_capture_string(start_pos[0], end_pos[0])};
@@ -190,9 +190,11 @@ auto LogParser::parse(LogParser::ParsingAction& parsing_action) -> ErrorCode {
         output_buffer->set_curr_token(next_token);
         auto token_type = next_token.m_type_ids_ptr->at(0);
         bool found_start_of_next_message
-                = (output_buffer->has_header() && token_type == (uint32_t)SymbolId::TokenHeader)
+                = (output_buffer->has_header()
+                   && token_type == static_cast<uint32_t>(SymbolId::TokenHeader)
+                   && next_token.get_char(0) == '\n')
                   || (!output_buffer->has_header() && next_token.get_char(0) == '\n'
-                      && token_type != (uint32_t)SymbolId::TokenNewline);
+                      && token_type != static_cast<uint32_t>(SymbolId::TokenNewline));
         if (token_type == (uint32_t)SymbolId::TokenEnd) {
             parsing_action = ParsingAction::CompressAndFinish;
             return ErrorCode::Success;

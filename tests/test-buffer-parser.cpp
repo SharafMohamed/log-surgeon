@@ -358,7 +358,7 @@ TEST_CASE("Test buffer parser with CLP default schema", "[BufferParser]") {
             .m_logtype{R"( <int> <float> <hex>  userID=<val> text <hasNumber>)"},
             .m_timestamp_raw{"2012-12-12 12:12:12.123"},
             .m_tokens{
-                    {{"2012-12-12 12:12:12.123", "firstTimestamp", {}},
+                    {{"2012-12-12 12:12:12.123", "header", {{{"timestamp", {{0}, {23}}}}}},
                      {" 123", "int", {}},
                      {" 123.123", "float", {}},
                      {" abc", "hex", {}},
@@ -918,7 +918,7 @@ TEST_CASE("Midline timestamp log", "[LogParser]") {
             capture_positions3{{20}, {47}};
 
     ExpectedEvent const expected_event{
-            .m_logtype{R"(<header> text)"},
+            .m_logtype{R"(<verbosity> DEVICE(<deviceId>): text)"},
             .m_timestamp_raw{"2012-11-10:01:02:03.123.456"},
             .m_tokens{
                     {{"[ERROR] DEVICE(123):2012-11-10:01:02:03.123.456",
