@@ -344,7 +344,7 @@ TEST_CASE("Test buffer parser with capture groups", "[BufferParser]") {
 TEST_CASE("Test buffer parser with CLP default schema", "[BufferParser]") {
     constexpr string_view cDelimitersSchema{R"(delimiters: \n\r\[:,)"};
     constexpr string_view cVarSchema1{
-            R"(timestamp:[0-9]{4}\-[0-9]{2}\-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}[,\.][0-9]{0,3})"
+            R"(header:(?<timestamp>\d{4}\-\d{2}\-\d{2} \d{2}:\d{2}:\d{2}[,\.]\d{0,3}))"
     };
     constexpr string_view cVarSchema2{R"(int:\-{0,1}[0-9]+)"};
     constexpr string_view cVarSchema3{R"(float:\-{0,1}[0-9]+\.[0-9]+)"};
